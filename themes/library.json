@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "themes": [
+    {
+      "id": "mkrshift-default",
+      "name": "MKRShift Default",
+      "colors": {
+        "comfy_base": {
+          "base-background": "#1f1f1f",
+          "bg-color": "#1f1f1f",
+          "comfy-menu-bg": "#262626",
+          "content-fg": "#d2fd51",
+          "primary-background": "#d2fd51",
+          "accent-primary": "#d2fd51"
+        }
+      }
+    }
+  ]
+}
