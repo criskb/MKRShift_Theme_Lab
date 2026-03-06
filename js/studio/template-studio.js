@@ -18,6 +18,10 @@ function themePreviewGradient(theme) {
   return `linear-gradient(135deg, ${bg} 0%, ${panel} 45%, ${accentA} 72%, ${accentB} 100%)`;
 }
 
+function getThemeDescription(record) {
+  return String(record?.data?.description || "").trim();
+}
+
 function readLayout() {
   try {
     const value = localStorage.getItem(LAYOUT_STORAGE_KEY);
@@ -59,6 +63,7 @@ export class ThemeLabTemplateStudio {
     this.navButtons = new Map();
     this.livePreviewFrame = 0;
     this.livePreviewTheme = null;
+    this.livePreviewApplyExtensionSettings = false;
 
     this.isOpen = false;
     this.usesExtensionDialog = false;
@@ -448,10 +453,12 @@ export class ThemeLabTemplateStudio {
       this.livePreviewFrame = 0;
     }
     this.livePreviewTheme = null;
+    this.livePreviewApplyExtensionSettings = false;
   }
 
-  queueLivePreview(theme) {
+  queueLivePreview(theme, { applyExtensionSettings = false } = {}) {
     this.livePreviewTheme = theme;
+    this.livePreviewApplyExtensionSettings ||= Boolean(applyExtensionSettings);
     if (this.livePreviewFrame) {
       return;
     }
@@ -459,9 +466,11 @@ export class ThemeLabTemplateStudio {
     this.livePreviewFrame = requestAnimationFrame(() => {
       this.livePreviewFrame = 0;
       const nextTheme = this.livePreviewTheme;
+      const applyExtensionSettingsNow = this.livePreviewApplyExtensionSettings;
       this.livePreviewTheme = null;
+      this.livePreviewApplyExtensionSettings = false;
       if (nextTheme && this.options.isLivePreviewEnabled()) {
-        this.options.applyTheme(nextTheme);
+        this.options.applyTheme(nextTheme, { applyExtensionSettings: applyExtensionSettingsNow });
       }
     });
   }
@@ -558,7 +567,9 @@ export class ThemeLabTemplateStudio {
         if (!this.search) {
           return true;
         }
-        return record.name.toLowerCase().includes(this.search);
+        const name = String(record.name || "").toLowerCase();
+        const description = getThemeDescription(record).toLowerCase();
+        return name.includes(this.search) || description.includes(this.search);
       });
 
     const { wrap: searchWrap, input } = this.makeSearchBox({
@@ -579,7 +590,7 @@ export class ThemeLabTemplateStudio {
         if (typeof this.options.applyThemeAndPersist === "function") {
           await this.options.applyThemeAndPersist(active);
         } else {
-          this.options.applyTheme(active.data);
+          this.options.applyTheme(active.data, { applyExtensionSettings: true });
           this.options.showToast({
             severity: "success",
             summary: "Theme Lab",
@@ -613,7 +624,7 @@ export class ThemeLabTemplateStudio {
         if (count > 0) {
           this.renderMain();
           if (this.options.isLivePreviewEnabled()) {
-            this.options.applyTheme(this.options.getActiveTheme());
+            this.options.applyTheme(this.options.getActiveTheme(), { applyExtensionSettings: true });
           }
         }
       }, "tl-btn tl-btn-secondary"),
@@ -682,7 +693,26 @@ export class ThemeLabTemplateStudio {
         row.className = record.id === this.options.getLibrary().activeThemeId ? "is-active" : "";
 
         const nameCell = document.createElement("td");
-        nameCell.textContent = record.name;
+        nameCell.className = "tl-theme-table-name-cell";
+
+        const nameStack = document.createElement("div");
+        nameStack.className = "tl-theme-table-name";
+
+        const nameTitle = document.createElement("div");
+        nameTitle.className = "tl-theme-table-title";
+        nameTitle.textContent = record.name;
+
+        nameStack.appendChild(nameTitle);
+
+        const description = getThemeDescription(record);
+        if (description) {
+          const descriptionEl = document.createElement("div");
+          descriptionEl.className = "tl-theme-table-description";
+          descriptionEl.textContent = description;
+          nameStack.appendChild(descriptionEl);
+        }
+
+        nameCell.appendChild(nameStack);
 
         const metaCell = document.createElement("td");
         metaCell.textContent = formatTimestamp(record.updatedAt);
@@ -756,17 +786,27 @@ export class ThemeLabTemplateStudio {
     bottom.className = "flex-1 w-full h-full";
 
     const body = document.createElement("div");
-    body.className = "flex flex-col gap-2 pt-3";
+    body.className = "tl-theme-card-body";
 
     const name = document.createElement("h3");
-    name.className = "m-0 line-clamp-1 text-sm";
+    name.className = "tl-theme-card-title";
     name.textContent = record.name;
 
+    body.appendChild(name);
+
+    const description = getThemeDescription(record);
+    if (description) {
+      const descriptionEl = document.createElement("p");
+      descriptionEl.className = "tl-theme-card-description";
+      descriptionEl.textContent = description;
+      body.appendChild(descriptionEl);
+    }
+
     const meta = document.createElement("p");
-    meta.className = "m-0 line-clamp-2 text-sm text-muted";
+    meta.className = "tl-theme-card-updated";
     meta.textContent = `Updated ${formatTimestamp(record.updatedAt)}`;
 
-    body.append(name, meta);
+    body.appendChild(meta);
     bottom.appendChild(body);
     card.append(top, bottom);
 
@@ -825,10 +865,23 @@ export class ThemeLabTemplateStudio {
       if (typeof this.options.applyThemeAndPersist === "function") {
         await this.options.applyThemeAndPersist(active);
       } else {
-        this.options.applyTheme(active.data);
+        this.options.applyTheme(active.data, { applyExtensionSettings: true });
         this.options.showToast({ severity: "success", summary: "Theme Lab", detail: "Theme applied." });
       }
     });
+
+    const rescanButton = this.makeButton("Rescan Extensions", async () => {
+      if (typeof this.options.refreshExtensionProviders !== "function") {
+        return;
+      }
+      await this.options.refreshExtensionProviders();
+      this.renderMain();
+      this.options.showToast({
+        severity: "success",
+        summary: "Theme Lab",
+        detail: "Extension settings rescanned.",
+      });
+    }, "tl-btn tl-btn-secondary");
 
     const duplicateButton = this.makeButton("Duplicate", () => {
       this.options.duplicateTheme(record.id);
@@ -883,7 +936,7 @@ export class ThemeLabTemplateStudio {
         this.options.resetActiveTheme();
         this.renderMain();
         if (this.options.isLivePreviewEnabled()) {
-          this.options.applyTheme(this.options.getActiveTheme());
+          this.options.applyTheme(this.options.getActiveTheme(), { applyExtensionSettings: true });
         }
       },
       "tl-btn tl-btn-secondary",
@@ -916,7 +969,17 @@ export class ThemeLabTemplateStudio {
 
     deleteButton.disabled = this.options.getThemeRecords().length <= 1;
 
-    left.append(selectWrap, applyButton, duplicateButton, exportButton, setPreviewButton, clearPreviewButton, resetButton, deleteButton);
+    left.append(
+      selectWrap,
+      applyButton,
+      rescanButton,
+      duplicateButton,
+      exportButton,
+      setPreviewButton,
+      clearPreviewButton,
+      resetButton,
+      deleteButton,
+    );
     toolbar.appendChild(left);
 
     const editorTitle = document.createElement("div");
@@ -937,7 +1000,7 @@ export class ThemeLabTemplateStudio {
       }
     };
 
-    const onAny = ({ preview = true } = {}) => {
+    const onAny = ({ preview = true, applyExtensionSettings = false } = {}) => {
       const activeRecord = this.options.getActiveThemeRecord();
       activeRecord.name = String(activeRecord.data.name ?? "").trim() || "Theme";
       activeRecord.data.name = activeRecord.name;
@@ -945,12 +1008,20 @@ export class ThemeLabTemplateStudio {
       this.options.markRecordUpdated(activeRecord);
       this.options.scheduleLibraryPersist();
       if (preview && this.options.isLivePreviewEnabled()) {
-        this.queueLivePreview(activeRecord.data);
+        this.queueLivePreview(activeRecord.data, { applyExtensionSettings });
       }
     };
 
     void this.options.buildEditorSections(body, record.data, onAny, {
       refresh: () => this.renderEditorPage(),
+      reloadAndReopenStudio: (page = "editor") => this.options.reloadAndReopenStudio?.(page),
+      previewTheme: (applyExtensionSettings = false) => {
+        if (!this.options.isLivePreviewEnabled()) {
+          return;
+        }
+        const active = this.options.getActiveThemeRecord();
+        this.options.applyTheme(active.data, { applyExtensionSettings });
+      },
     });
     this.main.appendChild(body);
   }
@@ -987,7 +1058,7 @@ export class ThemeLabTemplateStudio {
     p1.textContent = "Theme Lab is a full-screen theme workspace for ComfyUI. It lets you browse saved looks, edit them in one place, and apply them without leaving the canvas.";
 
     const p2 = document.createElement("p");
-    p2.textContent = "Each saved theme combines official Comfy palette colors with Theme Lab-specific canvas tuning, preview images, and extension-side styling controls. Your library is stored in Comfy user data with a local cache fallback.";
+    p2.textContent = "Each saved theme combines official Comfy palette colors with Theme Lab-specific canvas tuning, preview images, and scanned extension-side styling controls. On startup and when the editor opens, Theme Lab inspects loaded custom-node settings and adds visual controls under Extension sections when they look themeable.";
 
     const p3 = document.createElement("p");
     p3.textContent = "Use Saved Themes to manage your library, Theme Editor to tune colors and canvas geometry, and Apply to sync the active look back into ComfyUI's runtime theme file.";
@@ -998,6 +1069,7 @@ export class ThemeLabTemplateStudio {
       "Match UI colors, node slots, widgets, links, reroutes, and canvas spacing in one theme record.",
       "Store theme previews alongside saved themes so the library is visual instead of text-only.",
       "Export the active theme to ComfyUI while keeping Theme Lab-only metadata in the extension library.",
+      "Scan loaded custom-node settings and group visual controls under Extension - Name sections in the editor.",
       "Use live preview to iterate quickly, then apply once you want the current theme committed.",
     ]) {
       const li = document.createElement("li");

@@ -13,12 +13,11 @@ import {
   applyThemeLabCanvasConfig,
 } from "./theme-lab-canvas.js";
 import {
-  FANCY_GRID_PROVIDER_ID,
-  buildFancyGridProvider,
-  isFancyGridAvailable,
-  applyFancyGridTheme,
-  clearFancyGridTheme,
-} from "./providers/fancy-grid-provider.js";
+  buildRegisteredExtensionProviders,
+} from "./providers/extension-settings-provider.js";
+import {
+  fetchScannedExtensionStyleProviders,
+} from "./providers/extension-style-provider.js";
 
 const EXT_ID = "ThemeLab";
 const VERSION = "2.0.0";
@@ -26,6 +25,7 @@ const VERSION = "2.0.0";
 const LEGACY_CURRENT_KEY = "themelab.currentTheme";
 const LIBRARY_CACHE_KEY = "themelab.library.cache";
 const EDITOR_SECTION_STATE_KEY = "themelab.editor.sectionState";
+const STUDIO_REOPEN_KEY = "themelab.reopenStudio";
 const USER_LIBRARY_FILE = "themelab.themes.json";
 const USER_PREVIEW_DIR = "themelab/previews";
 const USER_COMFY_THEME_DIR = "themes";
@@ -89,66 +89,109 @@ const BUNDLED_THEME_LIBRARY_URL = resolveExtensionUrl("../themes/library.json");
 const BUNDLED_THEME_ROOT_URL = resolveExtensionUrl("../themes/");
 
 const DEFAULT_PROVIDER_URLS = [];
+const EXTENSION_STYLING_TOOLTIP = "Some extentions might break when adding custom styling and will need to reload canvas after";
+const CANVAS_PRESET_LITEGRAPH_FIELDS = [
+  { key: "NODE_TEXT_SIZE" },
+  { key: "NODE_SUBTEXT_SIZE" },
+  { key: "DEFAULT_GROUP_FONT" },
+];
 
 const THEME_LAB_CANVAS_PRESETS = Object.freeze({
-  compact: normalizeThemeLabCanvasConfig({
-    ...THEME_LAB_CANVAS_DEFAULTS,
-    node_title_height: 26,
-    node_slot_height: 18,
-    node_widget_height: 18,
-    node_corner_radius: 6,
-    connection_width: 2.5,
-    link_render_mode: "linear",
-    node_outline_width: 0,
-    widget_outline_width: 0.75,
-    group_outline_width: 0.75,
-    reroute_dot_size: 8,
-    reroute_slot_size: 4,
-    render_connection_borders: false,
-    render_connection_shadows: false,
-    render_connection_arrows: false,
+  compact: Object.freeze({
+    canvas: normalizeThemeLabCanvasConfig({
+      ...THEME_LAB_CANVAS_DEFAULTS,
+      node_title_height: 26,
+      node_slot_height: 18,
+      node_widget_height: 18,
+      node_corner_radius: 6,
+      connection_width: 2.25,
+      link_render_mode: "linear",
+      node_outline_width: 0,
+      widget_outline_width: 0.75,
+      group_outline_width: 0.75,
+      reroute_dot_size: 8,
+      reroute_slot_size: 4,
+      render_connection_borders: false,
+      render_connection_shadows: false,
+      render_connection_arrows: false,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TEXT_SIZE: 13,
+      NODE_SUBTEXT_SIZE: 11,
+      DEFAULT_GROUP_FONT: 20,
+    }),
   }),
-  default: normalizeThemeLabCanvasConfig(THEME_LAB_CANVAS_DEFAULTS),
-  spacious: normalizeThemeLabCanvasConfig({
-    ...THEME_LAB_CANVAS_DEFAULTS,
-    node_title_height: 34,
-    node_slot_height: 22,
-    node_widget_height: 22,
-    node_corner_radius: 10,
-    connection_width: 3.5,
-    link_render_mode: "spline",
-    node_outline_width: 0.25,
-    widget_outline_width: 1.25,
-    group_outline_width: 1.25,
-    reroute_dot_size: 11,
-    reroute_slot_size: 5.5,
-    render_connection_borders: true,
-    render_connection_shadows: true,
-    render_connection_arrows: false,
+  default: Object.freeze({
+    canvas: normalizeThemeLabCanvasConfig(THEME_LAB_CANVAS_DEFAULTS),
+    litegraph_base: Object.freeze({
+      NODE_TEXT_SIZE: 14,
+      NODE_SUBTEXT_SIZE: 12,
+      DEFAULT_GROUP_FONT: 24,
+    }),
   }),
-  presentation: normalizeThemeLabCanvasConfig({
-    ...THEME_LAB_CANVAS_DEFAULTS,
-    node_title_height: 38,
-    node_slot_height: 24,
-    node_widget_height: 24,
-    node_corner_radius: 12,
-    connection_width: 4.5,
-    link_render_mode: "spline",
-    link_marker_shape: "arrow",
-    node_outline_width: 0.5,
-    widget_outline_width: 1.5,
-    group_outline_width: 1.5,
-    reroute_dot_size: 12,
-    reroute_slot_size: 6,
-    render_connection_borders: true,
-    render_connection_shadows: true,
-    render_connection_arrows: true,
+  spacious: Object.freeze({
+    canvas: normalizeThemeLabCanvasConfig({
+      ...THEME_LAB_CANVAS_DEFAULTS,
+      node_title_height: 34,
+      node_slot_height: 22,
+      node_widget_height: 22,
+      node_corner_radius: 10,
+      connection_width: 3.5,
+      link_render_mode: "spline",
+      node_outline_width: 0.25,
+      widget_outline_width: 1.25,
+      group_outline_width: 1.25,
+      reroute_dot_size: 11,
+      reroute_slot_size: 5.5,
+      render_connection_borders: true,
+      render_connection_shadows: true,
+      render_connection_arrows: false,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TEXT_SIZE: 15,
+      NODE_SUBTEXT_SIZE: 12,
+      DEFAULT_GROUP_FONT: 26,
+    }),
   }),
+  presentation: Object.freeze({
+    canvas: normalizeThemeLabCanvasConfig({
+      ...THEME_LAB_CANVAS_DEFAULTS,
+      node_title_height: 38,
+      node_slot_height: 24,
+      node_widget_height: 24,
+      node_corner_radius: 12,
+      connection_width: 4.5,
+      link_render_mode: "spline",
+      link_marker_shape: "arrow",
+      node_outline_width: 0.5,
+      widget_outline_width: 1.5,
+      group_outline_width: 1.5,
+      reroute_dot_size: 12,
+      reroute_slot_size: 6,
+      render_connection_borders: true,
+      render_connection_shadows: true,
+      render_connection_arrows: true,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TEXT_SIZE: 16,
+      NODE_SUBTEXT_SIZE: 13,
+      DEFAULT_GROUP_FONT: 30,
+    }),
+  }),
+});
+
+const THEME_LAB_CANVAS_PRESET_DESCRIPTIONS = Object.freeze({
+  compact: "Tighter node geometry, slimmer links, and smaller canvas labels.",
+  default: "Theme Lab default canvas proportions and link behavior.",
+  spacious: "More breathing room between slots, widgets, and connections.",
+  presentation: "Large nodes, stronger outlines, and clearer presentation-scale links.",
+  custom: "Custom canvas geometry and LiteGraph text sizing.",
 });
 
 const TEMPLATE = {
   id: DEFAULT_THEME_ID,
   name: "Theme Lab",
+  description: "",
   colors: {
     node_slot: {
       CLIP: "#FFD500",
@@ -269,6 +312,7 @@ const TEMPLATE = {
   },
   theme_lab: {
     canvas: { ...THEME_LAB_CANVAS_DEFAULTS },
+    extension_styling_enabled: true,
   },
 };
 
@@ -348,41 +392,75 @@ const COMFY_TYPOGRAPHY_FIELDS = [
 
 const THEME_LAB_TYPOGRAPHY_PRESETS = Object.freeze({
   compact: Object.freeze({
-    "font-inter": TEMPLATE.colors.comfy_base["font-inter"],
-    "comfy-textarea-font-size": "12px",
-    "comfy-tree-explorer-item-padding": "4px 4px",
-    "comfy-topbar-height": "2.25rem",
-    "comfy-widget-min-height": "22",
-    "comfy-widget-max-height": "280",
-    "comfy-widget-height": "auto",
-    "comfy-img-preview-width": "320px",
-    "comfy-img-preview-height": "216px",
+    comfy_base: Object.freeze({
+      "font-inter": TEMPLATE.colors.comfy_base["font-inter"],
+      "comfy-textarea-font-size": "12px",
+      "comfy-tree-explorer-item-padding": "4px 4px",
+      "comfy-topbar-height": "2.25rem",
+      "comfy-widget-min-height": "22",
+      "comfy-widget-max-height": "280",
+      "comfy-widget-height": "auto",
+      "comfy-img-preview-width": "320px",
+      "comfy-img-preview-height": "216px",
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TEXT_SIZE: 13,
+      NODE_SUBTEXT_SIZE: 11,
+      DEFAULT_GROUP_FONT: 20,
+    }),
   }),
-  default: Object.freeze(Object.fromEntries(
-    COMFY_TYPOGRAPHY_FIELDS.map((field) => [field.key, TEMPLATE.colors.comfy_base[field.key]]),
-  )),
+  default: Object.freeze({
+    comfy_base: Object.freeze(Object.fromEntries(
+      COMFY_TYPOGRAPHY_FIELDS.map((field) => [field.key, TEMPLATE.colors.comfy_base[field.key]]),
+    )),
+    litegraph_base: Object.freeze(Object.fromEntries(
+      CANVAS_PRESET_LITEGRAPH_FIELDS.map((field) => [field.key, TEMPLATE.colors.litegraph_base[field.key]]),
+    )),
+  }),
   comfortable: Object.freeze({
-    "font-inter": TEMPLATE.colors.comfy_base["font-inter"],
-    "comfy-textarea-font-size": "14px",
-    "comfy-tree-explorer-item-padding": "7px 5px",
-    "comfy-topbar-height": "2.75rem",
-    "comfy-widget-min-height": "26",
-    "comfy-widget-max-height": "360",
-    "comfy-widget-height": "auto",
-    "comfy-img-preview-width": "416px",
-    "comfy-img-preview-height": "272px",
+    comfy_base: Object.freeze({
+      "font-inter": TEMPLATE.colors.comfy_base["font-inter"],
+      "comfy-textarea-font-size": "14px",
+      "comfy-tree-explorer-item-padding": "7px 5px",
+      "comfy-topbar-height": "2.75rem",
+      "comfy-widget-min-height": "26",
+      "comfy-widget-max-height": "360",
+      "comfy-widget-height": "auto",
+      "comfy-img-preview-width": "416px",
+      "comfy-img-preview-height": "272px",
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TEXT_SIZE: 15,
+      NODE_SUBTEXT_SIZE: 12,
+      DEFAULT_GROUP_FONT: 24,
+    }),
   }),
   presentation: Object.freeze({
-    "font-inter": TEMPLATE.colors.comfy_base["font-inter"],
-    "comfy-textarea-font-size": "15px",
-    "comfy-tree-explorer-item-padding": "8px 6px",
-    "comfy-topbar-height": "3rem",
-    "comfy-widget-min-height": "28",
-    "comfy-widget-max-height": "420",
-    "comfy-widget-height": "auto",
-    "comfy-img-preview-width": "448px",
-    "comfy-img-preview-height": "288px",
+    comfy_base: Object.freeze({
+      "font-inter": TEMPLATE.colors.comfy_base["font-inter"],
+      "comfy-textarea-font-size": "15px",
+      "comfy-tree-explorer-item-padding": "8px 6px",
+      "comfy-topbar-height": "3rem",
+      "comfy-widget-min-height": "28",
+      "comfy-widget-max-height": "420",
+      "comfy-widget-height": "auto",
+      "comfy-img-preview-width": "448px",
+      "comfy-img-preview-height": "288px",
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TEXT_SIZE: 16,
+      NODE_SUBTEXT_SIZE: 13,
+      DEFAULT_GROUP_FONT: 28,
+    }),
   }),
+});
+
+const THEME_LAB_TYPOGRAPHY_PRESET_DESCRIPTIONS = Object.freeze({
+  compact: "Denser controls and smaller text for editing-heavy layouts.",
+  default: "Theme Lab default UI density and readable baseline sizing.",
+  comfortable: "Looser spacing with easier scanning across panels and widgets.",
+  presentation: "Larger text and roomier widgets for showcase-style layouts.",
+  custom: "Custom UI density and LiteGraph typography mix.",
 });
 
 const runtime = {
@@ -393,7 +471,9 @@ const runtime = {
   bundledThemes: null,
   bundledThemesPromise: null,
   providersPromise: null,
+  scannedStyleProvidersPromise: null,
   providerIndex: {},
+  providerAliasIndex: {},
   previewIndexLoaded: false,
   previewIndexPromise: null,
   previewByKey: {},
@@ -418,6 +498,254 @@ function cleanPreviewKey(value) {
 function slugifyThemeName(value, fallback = "theme") {
   const slug = cleanPreviewKey(value).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return slug || fallback;
+}
+
+function canonicalExtensionProviderId(value, fallback = "extension") {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return `extension-${fallback}`;
+  }
+
+  const stripped = raw.replace(/^extension-/, "");
+  return `extension-${slugifyThemeName(stripped, fallback)}`;
+}
+
+function registerProviderAlias(alias, canonicalId) {
+  const raw = String(alias || "").trim();
+  const target = String(canonicalId || "").trim();
+  if (!raw || !target) {
+    return;
+  }
+
+  runtime.providerAliasIndex[raw] = target;
+  runtime.providerAliasIndex[canonicalExtensionProviderId(raw)] = target;
+}
+
+function buildProviderAliasCandidates(providerLike) {
+  const provider = providerLike && typeof providerLike === "object" ? providerLike : {};
+  const rawId = String(provider.id || "").trim();
+  const rawTitle = String(provider.title || "").trim();
+  const aliases = new Set();
+
+  if (rawId) {
+    aliases.add(rawId);
+    aliases.add(rawId.replace(/^extension-/, ""));
+  }
+
+  if (rawTitle) {
+    aliases.add(rawTitle);
+    aliases.add(rawTitle.replace(/^Extension\s*-\s*/i, ""));
+  }
+
+  if (rawTitle || rawId) {
+    aliases.add(slugifyThemeName(rawTitle || rawId, "extension"));
+  }
+
+  return Array.from(aliases).filter(Boolean);
+}
+
+function getProviderItemKeys(manifest) {
+  const keys = new Set();
+  for (const sectionItems of Object.values(manifest?.sections || {})) {
+    for (const item of sectionItems || []) {
+      if (item?.key) {
+        keys.add(String(item.key));
+      }
+    }
+  }
+  return keys;
+}
+
+function findBestMatchingExtensionProviderId(providerValues) {
+  const valueKeys = Object.keys(providerValues || {});
+  if (!valueKeys.length) {
+    return "";
+  }
+
+  let bestId = "";
+  let bestScore = 0;
+  let bestRatio = 0;
+
+  for (const manifest of Object.values(runtime.providerIndex || {})) {
+    const itemKeys = getProviderItemKeys(manifest);
+    if (!itemKeys.size) {
+      continue;
+    }
+
+    let overlap = 0;
+    for (const key of valueKeys) {
+      if (itemKeys.has(key)) {
+        overlap += 1;
+      }
+    }
+
+    if (!overlap) {
+      continue;
+    }
+
+    const ratio = overlap / Math.max(valueKeys.length, itemKeys.size);
+    if (overlap > bestScore || (overlap === bestScore && ratio > bestRatio)) {
+      bestId = String(manifest.id || "");
+      bestScore = overlap;
+      bestRatio = ratio;
+    }
+  }
+
+  if (bestScore >= 2 || bestRatio >= 0.45) {
+    return bestId;
+  }
+
+  return "";
+}
+
+function resolveExtensionProviderId(providerId, providerValues = null) {
+  const raw = String(providerId || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  if (runtime.providerIndex[raw]) {
+    return raw;
+  }
+
+  const canonical = canonicalExtensionProviderId(raw);
+  if (runtime.providerIndex[canonical]) {
+    return canonical;
+  }
+
+  if (runtime.providerAliasIndex[raw]) {
+    return runtime.providerAliasIndex[raw];
+  }
+
+  if (runtime.providerAliasIndex[canonical]) {
+    return runtime.providerAliasIndex[canonical];
+  }
+
+  const matched = findBestMatchingExtensionProviderId(providerValues);
+  if (matched) {
+    registerProviderAlias(raw, matched);
+    return matched;
+  }
+
+  return "";
+}
+
+function mergeExtensionProviderValues(target, source, { preferSource = false } = {}) {
+  for (const [key, value] of Object.entries(source || {})) {
+    if (preferSource || target[key] === undefined) {
+      target[key] = clone(value);
+    }
+  }
+}
+
+function normalizeExtensionValueMap(extensionValues) {
+  const rawMap = extensionValues && typeof extensionValues === "object" ? extensionValues : {};
+  const normalized = {};
+
+  const entries = Object.entries(rawMap);
+  const orderedEntries = [
+    ...entries.filter(([providerId]) => !resolveExtensionProviderId(providerId)),
+    ...entries.filter(([providerId]) => Boolean(resolveExtensionProviderId(providerId))),
+  ];
+
+  for (const [providerId, providerValues] of orderedEntries) {
+    const valueObject = providerValues && typeof providerValues === "object" ? providerValues : {};
+    const resolvedId = resolveExtensionProviderId(providerId, valueObject);
+
+    if (!resolvedId) {
+      normalized[providerId] = clone(valueObject);
+      continue;
+    }
+
+    const target = normalized[resolvedId] || (normalized[resolvedId] = {});
+    const preferSource = resolvedId === providerId;
+    mergeExtensionProviderValues(target, valueObject, { preferSource });
+  }
+
+  const rawKeys = Object.keys(rawMap);
+  const normalizedKeys = Object.keys(normalized);
+  let changed = rawKeys.length !== normalizedKeys.length;
+  if (!changed && rawKeys.length === normalizedKeys.length) {
+    changed = rawKeys.some((key) => {
+      if (!Object.prototype.hasOwnProperty.call(normalized, key)) {
+        return true;
+      }
+      return JSON.stringify(rawMap[key]) !== JSON.stringify(normalized[key]);
+    });
+  }
+
+  return { values: normalized, changed };
+}
+
+function normalizeThemeExtensionValues(theme) {
+  if (!theme?.colors || typeof theme.colors !== "object") {
+    return false;
+  }
+
+  const { values, changed } = normalizeExtensionValueMap(theme.colors.extensions);
+  if (!theme.colors.extensions || changed) {
+    theme.colors.extensions = values;
+    return true;
+  }
+
+  return false;
+}
+
+function normalizeLibraryExtensionValues() {
+  let changed = false;
+
+  for (const record of getThemeRecords()) {
+    if (!record?.data) {
+      continue;
+    }
+    if (normalizeThemeExtensionValues(record.data)) {
+      markRecordUpdated(record);
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
+function normalizeThemeLabBoolean(value, fallback = true) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(normalized)) {
+      return true;
+    }
+    if (["false", "0", "no", "off"].includes(normalized)) {
+      return false;
+    }
+  }
+  return fallback;
+}
+
+function ensureThemeLabOptions(theme) {
+  if (!theme || typeof theme !== "object") {
+    return { canvas: normalizeThemeLabCanvasConfig(null), extension_styling_enabled: true };
+  }
+
+  const themeLabRoot = theme.theme_lab && typeof theme.theme_lab === "object"
+    ? theme.theme_lab
+    : (theme.theme_lab = {});
+
+  themeLabRoot.canvas = ensureThemeLabCanvasConfig(theme);
+  themeLabRoot.extension_styling_enabled = normalizeThemeLabBoolean(
+    themeLabRoot.extension_styling_enabled,
+    true,
+  );
+  return themeLabRoot;
+}
+
+function isThemeLabExtensionStylingEnabled(theme) {
+  return ensureThemeLabOptions(theme).extension_styling_enabled !== false;
+}
+
+function setThemeLabExtensionStylingEnabled(theme, enabled) {
+  ensureThemeLabOptions(theme).extension_styling_enabled = Boolean(enabled);
 }
 
 function readEditorSectionState() {
@@ -462,12 +790,18 @@ function flattenSearchTerms(value, target = []) {
     return target;
   }
 
-  const text = String(value ?? "").trim().toLowerCase();
-  if (!text) {
+  const raw = String(value ?? "").trim();
+  if (!raw) {
     return target;
   }
 
-  const normalized = text.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  const text = raw.toLowerCase();
+  const normalized = raw
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
   target.push(text);
   if (normalized && normalized !== text) {
     target.push(normalized);
@@ -493,10 +827,42 @@ function matchesSearchIndex(index, query) {
 }
 
 function setSectionFilterState(sectionRef, query) {
-  const match = matchesSearchIndex(sectionRef.wrap.dataset.search || "", query);
+  const rows = Array.from(sectionRef.wrap.querySelectorAll("[data-tl-row-search]"));
+  const groups = Array.from(sectionRef.wrap.querySelectorAll("[data-tl-extension-group]"));
+  const sectionMatch = matchesSearchIndex(sectionRef.wrap.dataset.search || "", query);
+  let visibleRows = 0;
+
+  if (!query || sectionMatch) {
+    for (const rowEl of rows) {
+      rowEl.hidden = false;
+    }
+    for (const groupEl of groups) {
+      groupEl.hidden = false;
+    }
+    visibleRows = rows.length;
+  } else {
+    for (const rowEl of rows) {
+      const match = matchesSearchIndex(rowEl.dataset.tlRowSearch || "", query);
+      rowEl.hidden = !match;
+      if (match) {
+        visibleRows += 1;
+      }
+    }
+
+    for (const groupEl of groups) {
+      const groupRows = Array.from(groupEl.querySelectorAll("[data-tl-row-search]"));
+      groupEl.hidden = groupRows.length > 0 && !groupRows.some((rowEl) => !rowEl.hidden);
+    }
+  }
+
+  const match = !query || sectionMatch || visibleRows > 0;
   sectionRef.wrap.hidden = !match;
   sectionRef.wrap.classList.toggle("is-search-open", Boolean(query) && match);
-  return match;
+  return {
+    match,
+    visibleRows: match ? visibleRows : 0,
+    totalRows: rows.length,
+  };
 }
 
 function assignFieldDefaults(target, source, fields) {
@@ -518,7 +884,8 @@ function assignFieldDefaults(target, source, fields) {
 function applyCanvasPreset(theme, presetKey) {
   const canvas = ensureThemeLabCanvasConfig(theme);
   const preset = THEME_LAB_CANVAS_PRESETS[presetKey] || THEME_LAB_CANVAS_PRESETS.default;
-  Object.assign(canvas, normalizeThemeLabCanvasConfig(preset));
+  Object.assign(canvas, normalizeThemeLabCanvasConfig(preset.canvas));
+  assignFieldDefaults(theme?.colors?.litegraph_base, preset.litegraph_base, CANVAS_PRESET_LITEGRAPH_FIELDS);
 }
 
 function applyTypographyPreset(theme, presetKey) {
@@ -528,7 +895,39 @@ function applyTypographyPreset(theme, presetKey) {
   }
 
   const preset = THEME_LAB_TYPOGRAPHY_PRESETS[presetKey] || THEME_LAB_TYPOGRAPHY_PRESETS.default;
-  assignFieldDefaults(comfyBase, preset, COMFY_TYPOGRAPHY_FIELDS);
+  assignFieldDefaults(comfyBase, preset.comfy_base, COMFY_TYPOGRAPHY_FIELDS);
+  assignFieldDefaults(theme?.colors?.litegraph_base, preset.litegraph_base, CANVAS_PRESET_LITEGRAPH_FIELDS);
+}
+
+function matchesPresetValues(source, preset, fields) {
+  const keys = (fields || []).map((field) => (typeof field === "string" ? field : field?.key)).filter(Boolean);
+  return keys.every((key) => String(source?.[key] ?? "") === String(preset?.[key] ?? ""));
+}
+
+function resolveCanvasPresetKey(theme) {
+  const canvas = normalizeThemeLabCanvasConfig(theme?.theme_lab?.canvas || {});
+  for (const [presetKey, preset] of Object.entries(THEME_LAB_CANVAS_PRESETS)) {
+    if (
+      matchesPresetValues(canvas, preset.canvas, THEME_LAB_CANVAS_FIELDS)
+      && matchesPresetValues(theme?.colors?.litegraph_base || {}, preset.litegraph_base, CANVAS_PRESET_LITEGRAPH_FIELDS)
+    ) {
+      return presetKey;
+    }
+  }
+  return "";
+}
+
+function resolveTypographyPresetKey(theme) {
+  const comfyBase = theme?.colors?.comfy_base || {};
+  for (const [presetKey, preset] of Object.entries(THEME_LAB_TYPOGRAPHY_PRESETS)) {
+    if (
+      matchesPresetValues(comfyBase, preset.comfy_base, COMFY_TYPOGRAPHY_FIELDS)
+      && matchesPresetValues(theme?.colors?.litegraph_base || {}, preset.litegraph_base, CANVAS_PRESET_LITEGRAPH_FIELDS)
+    ) {
+      return presetKey;
+    }
+  }
+  return "";
 }
 
 function previewKeyCandidates(value) {
@@ -919,6 +1318,44 @@ function getManager() {
   return app?.extensionManager;
 }
 
+function scheduleStudioReopen(page = "editor") {
+  try {
+    sessionStorage.setItem(STUDIO_REOPEN_KEY, JSON.stringify({
+      page: String(page || "editor"),
+      at: Date.now(),
+    }));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function consumeStudioReopenRequest() {
+  try {
+    const raw = sessionStorage.getItem(STUDIO_REOPEN_KEY);
+    if (!raw) {
+      return null;
+    }
+    sessionStorage.removeItem(STUDIO_REOPEN_KEY);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    const page = String(parsed.page || "editor");
+    const at = Number(parsed.at || 0);
+    if (Number.isFinite(at) && at > 0 && (Date.now() - at) > 10 * 60 * 1000) {
+      return null;
+    }
+    return { page };
+  } catch {
+    return null;
+  }
+}
+
+function reloadAndReopenStudio(page = "editor") {
+  scheduleStudioReopen(page);
+  location.reload();
+}
+
 function tryExecuteCommand(commandId) {
   const manager = getManager();
 
@@ -955,6 +1392,26 @@ function tryExecuteCommand(commandId) {
   }
 
   return false;
+}
+
+function suppressSidebarLauncherHost(el) {
+  return [
+    el,
+    el?.parentElement,
+  ]
+    .filter((target) => target instanceof HTMLElement)
+    .map((target) => {
+      target.classList.add("tl-sidebar-launch-suppress");
+      return target;
+    });
+}
+
+function restoreSidebarLauncherHost(targets) {
+  for (const target of targets || []) {
+    if (target instanceof HTMLElement) {
+      target.classList.remove("tl-sidebar-launch-suppress");
+    }
+  }
 }
 
 function getSetting(id, fallbackValue) {
@@ -1088,6 +1545,10 @@ function migrateTheme(themeLike) {
       base.name = String(input.name);
     }
 
+    if (input.description) {
+      base.description = String(input.description);
+    }
+
     ensureThemeLabCanvasConfig(base);
     if (input.theme_lab || input.themeLab || input.canvas) {
       base.theme_lab.canvas = ensureThemeLabCanvasConfig({
@@ -1096,11 +1557,22 @@ function migrateTheme(themeLike) {
         canvas: input.canvas,
       });
     }
+
+    const extensionStylingEnabled =
+      input.theme_lab?.extension_styling_enabled
+      ?? input.theme_lab?.extensionStylingEnabled
+      ?? input.theme_lab?.save_extension_styling
+      ?? input.themeLab?.extension_styling_enabled
+      ?? input.themeLab?.extensionStylingEnabled
+      ?? input.themeLab?.saveExtensionStyling;
+    if (extensionStylingEnabled !== undefined) {
+      base.theme_lab.extension_styling_enabled = normalizeThemeLabBoolean(extensionStylingEnabled, true);
+    }
   } catch {
     // keep defaults if migration fails
   }
 
-  ensureThemeLabCanvasConfig(base);
+  ensureThemeLabOptions(base);
   return base;
 }
 
@@ -1251,7 +1723,7 @@ function setActiveThemeId(id, { apply = false } = {}) {
   scheduleLibraryPersist();
 
   if (apply) {
-    applyTheme(record.data);
+    applyTheme(record.data, { applyExtensionSettings: true });
   }
 
   return record;
@@ -1453,15 +1925,22 @@ function exportThemeRecord(record) {
     return;
   }
   const fileName = `${record.name.replace(/\s+/g, "-") || "Theme"}.json`;
-  downloadJson(fileName, record.data);
+  const payload = clone(record.data);
+  normalizeThemeExtensionValues(payload);
+  downloadJson(fileName, payload);
 }
 
 function exportThemeLibrary() {
+  const themes = getThemeRecords().map((record) => {
+    const copy = clone(record);
+    normalizeThemeExtensionValues(copy.data);
+    return copy;
+  });
   const payload = {
     version: 2,
     exportedAt: nowIso(),
     activeThemeId: getLibrary().activeThemeId,
-    themes: getThemeRecords(),
+    themes,
   };
   downloadJson("theme-lab-library.json", payload);
 }
@@ -1669,6 +2148,7 @@ function compatManifest(json) {
         type: item.type || "text",
         default: item.default,
         cssVar: item.cssVar,
+        colorFormat: item.colorFormat,
         step: item.step,
         placeholder: item.placeholder,
       }));
@@ -1684,6 +2164,7 @@ function compatManifest(json) {
       type: item.type || "text",
       default: item.default,
       cssVar: item.cssVar,
+      colorFormat: item.colorFormat,
       step: item.step,
       placeholder: item.placeholder,
     }));
@@ -1704,27 +2185,60 @@ function compatManifest(json) {
 }
 
 function getBuiltinProviders() {
-  const providers = [];
-  const fancyGridProvider = buildFancyGridProvider();
-  if (fancyGridProvider) {
-    providers.push(fancyGridProvider);
-  }
-  return providers;
+  return buildRegisteredExtensionProviders({
+    app,
+    settingApis: [
+      getManager()?.setting,
+      app?.ui?.settings,
+    ],
+  });
 }
 
 function mergeProviders(providers) {
   const found = [];
-  const seen = new Set();
+  const merged = new Map();
   runtime.providerIndex = {};
+  runtime.providerAliasIndex = {};
 
   for (const provider of providers || []) {
     const manifest = compatManifest(provider);
-    const key = `${(manifest.id || "").toLowerCase()}:${(manifest.title || "").toLowerCase()}`;
-    if (seen.has(key)) {
-      continue;
+    const key = canonicalExtensionProviderId(manifest.title || manifest.id, "extension");
+    if (!merged.has(key)) {
+      merged.set(key, {
+        ...manifest,
+        id: key,
+        sections: {},
+      });
     }
 
-    seen.add(key);
+    const target = merged.get(key);
+    if (!target.title && manifest.title) {
+      target.title = manifest.title;
+    }
+    for (const [sectionName, items] of Object.entries(manifest.sections || {})) {
+      const sectionItems = (target.sections[sectionName] ||= []);
+      const seenItems = new Set(sectionItems.map((item) => String(item?.settingId || item?.key || "")));
+      for (const item of items || []) {
+        const itemKey = String(item?.settingId || item?.key || "");
+        if (seenItems.has(itemKey)) {
+          continue;
+        }
+        seenItems.add(itemKey);
+        sectionItems.push(item);
+      }
+      sectionItems.sort((left, right) => String(left?.label || "").localeCompare(String(right?.label || "")));
+    }
+
+    for (const alias of [
+      ...buildProviderAliasCandidates(provider),
+      ...buildProviderAliasCandidates(manifest),
+      key,
+    ]) {
+      registerProviderAlias(alias, key);
+    }
+  }
+
+  for (const manifest of merged.values()) {
     found.push(manifest);
     runtime.providerIndex[manifest.id] = manifest;
   }
@@ -1751,7 +2265,30 @@ async function loadProviders() {
   return found;
 }
 
-async function getProviders() {
+async function getScannedStyleProviders({ force = false } = {}) {
+  if (force) {
+    runtime.scannedStyleProvidersPromise = null;
+  }
+
+  if (!runtime.scannedStyleProvidersPromise) {
+    runtime.scannedStyleProvidersPromise = fetchScannedExtensionStyleProviders({
+      api,
+      force,
+    }).catch((providerError) => {
+      runtime.scannedStyleProvidersPromise = null;
+      warn("Scanned extension style provider load failed", providerError);
+      return [];
+    });
+  }
+
+  return runtime.scannedStyleProvidersPromise;
+}
+
+async function getProviders({ force = false } = {}) {
+  if (force) {
+    runtime.providersPromise = null;
+  }
+
   if (!runtime.providersPromise) {
     runtime.providersPromise = loadProviders().catch((providerError) => {
       runtime.providersPromise = null;
@@ -1760,11 +2297,41 @@ async function getProviders() {
     });
   }
 
-  const externalProviders = await runtime.providersPromise;
+  const [externalProviders, scannedStyleProviders] = await Promise.all([
+    runtime.providersPromise,
+    getScannedStyleProviders({ force }),
+  ]);
+
   return mergeProviders([
     ...getBuiltinProviders(),
+    ...scannedStyleProviders,
     ...externalProviders,
   ]);
+}
+
+async function refreshExtensionProviders({ refreshStudio = false } = {}) {
+  await getProviders({ force: true });
+  if (normalizeLibraryExtensionValues()) {
+    scheduleLibraryPersist(0);
+  }
+  if (refreshStudio && runtime.studioDialog?.isOpen) {
+    runtime.studioDialog.refresh();
+  }
+  return runtime.providerIndex;
+}
+
+function scheduleStartupProviderRefreshes() {
+  const refresh = () => void refreshExtensionProviders();
+
+  queueMicrotask(refresh);
+
+  try {
+    requestAnimationFrame(refresh);
+  } catch {
+    // ignore RAF failures
+  }
+
+  setTimeout(refresh, 1200);
 }
 
 function applyComfyBase(colors) {
@@ -1935,30 +2502,58 @@ function applyCustomCSS(customCss) {
   ensureStyleTag().textContent = String(customCss.raw || "");
 }
 
-function applyExtensionVars(extensionValues) {
+function applyProviderSettingValue(settingId, value) {
+  if (!settingId) {
+    return;
+  }
+
+  void setComfySettingValue(settingId, value).catch((settingError) => {
+    warn(`Failed to apply extension setting ${settingId}`, settingError);
+  });
+}
+
+function clearExtensionCssVars() {
+  const root = document.documentElement;
+  for (const manifest of Object.values(runtime.providerIndex || {})) {
+    for (const sectionItems of Object.values(manifest?.sections || {})) {
+      for (const item of sectionItems || []) {
+        if (item?.cssVar) {
+          root.style.removeProperty(item.cssVar);
+        }
+      }
+    }
+  }
+}
+
+function applyExtensionVars(extensionValues, { applySettings = false } = {}) {
   const root = document.documentElement;
   const valueMap = extensionValues && typeof extensionValues === "object" ? extensionValues : {};
   const appliedProviders = new Set();
 
   for (const [providerId, providerValues] of Object.entries(valueMap)) {
-    if (providerId === FANCY_GRID_PROVIDER_ID && applyFancyGridTheme(providerValues)) {
-      appliedProviders.add(providerId);
-    }
-
-    const manifest = runtime.providerIndex[providerId];
+    const resolvedId = resolveExtensionProviderId(providerId, providerValues);
+    const manifest = runtime.providerIndex[resolvedId];
     if (!manifest) {
       continue;
     }
+    if (appliedProviders.has(resolvedId)) {
+      continue;
+    }
+    appliedProviders.add(resolvedId);
 
     for (const sectionItems of Object.values(manifest.sections || {})) {
       for (const item of sectionItems || []) {
-        const cssVar = item.cssVar;
-        if (!cssVar) {
+        const key = item.key;
+        if (!Object.prototype.hasOwnProperty.call(providerValues || {}, key)) {
           continue;
         }
 
-        const key = item.key;
-        if (!Object.prototype.hasOwnProperty.call(providerValues || {}, key)) {
+        if (applySettings && item.settingId) {
+          applyProviderSettingValue(item.settingId, providerValues[key]);
+        }
+
+        const cssVar = item.cssVar;
+        if (!cssVar) {
           continue;
         }
 
@@ -1966,18 +2561,20 @@ function applyExtensionVars(extensionValues) {
       }
     }
   }
-
-  if (isFancyGridAvailable() && !appliedProviders.has(FANCY_GRID_PROVIDER_ID) && !Object.prototype.hasOwnProperty.call(valueMap, FANCY_GRID_PROVIDER_ID)) {
-    clearFancyGridTheme();
-  }
 }
 
-function applyTheme(theme = getActiveTheme()) {
+function applyTheme(theme = getActiveTheme(), { applyExtensionSettings = false } = {}) {
+  ensureThemeLabOptions(theme);
+  normalizeThemeExtensionValues(theme);
   applyComfyBase(theme.colors?.comfy_base);
   applyNodeSlotColors(theme.colors?.node_slot);
   applyLiteGraph(theme.colors?.litegraph_base);
   applyThemeLabCanvasConfig(ensureThemeLabCanvasConfig(theme), { app });
-  applyExtensionVars(theme.colors?.extensions);
+  if (isThemeLabExtensionStylingEnabled(theme)) {
+    applyExtensionVars(theme.colors?.extensions, { applySettings: applyExtensionSettings });
+  } else {
+    clearExtensionCssVars();
+  }
   applyCustomCSS(theme.custom_css);
 }
 
@@ -2424,7 +3021,7 @@ function refreshStylingAfterApply(theme, customPalettes, activePaletteId) {
   };
 
   // Reapply immediately, then again after potential async Comfy watchers run.
-  applyTheme(theme);
+  applyTheme(theme, { applyExtensionSettings: true });
 
   try {
     const isLight = inferComfyLightTheme(theme);
@@ -2468,7 +3065,7 @@ async function applyThemeAndPersist(record = getActiveThemeRecord(), { notify = 
     return false;
   }
 
-  applyTheme(target.data);
+  applyTheme(target.data, { applyExtensionSettings: true });
 
   const activePaletteId = await getComfySettingValue(
     COMFY_SETTING_COLOR_PALETTE,
@@ -2521,9 +3118,10 @@ async function applyThemeAndPersist(record = getActiveThemeRecord(), { notify = 
   return success;
 }
 
-function row(labelText) {
+function row(labelText, searchTerms = []) {
   const wrap = document.createElement("div");
   wrap.className = "tl-row";
+  wrap.dataset.tlRowSearch = buildSearchIndex(labelText, searchTerms);
 
   const label = document.createElement("label");
   label.textContent = labelText;
@@ -2532,7 +3130,27 @@ function row(labelText) {
   right.className = "tl-right";
 
   wrap.append(label, right);
-  return { wrap, right };
+  return {
+    wrap,
+    right,
+    setSearchTerms(nextTerms) {
+      wrap.dataset.tlRowSearch = buildSearchIndex(labelText, nextTerms);
+    },
+  };
+}
+
+function setControlDisabled(control, disabled) {
+  if (!control) {
+    return;
+  }
+
+  if ("disabled" in control) {
+    control.disabled = Boolean(disabled);
+  }
+
+  for (const field of control.querySelectorAll?.("input, select, textarea, button") || []) {
+    field.disabled = Boolean(disabled);
+  }
 }
 
 function parseHexColor(value, { allowAlpha = true } = {}) {
@@ -2585,7 +3203,106 @@ function normalizeHexColor(value, { allowAlpha = true, fallback = "#000000" } = 
   return parseHexColor(fallback, { allowAlpha: false }) || "#000000";
 }
 
-function colorInput(target, key, onAny) {
+function clampColorByte(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+  return Math.min(255, Math.max(0, Math.round(number)));
+}
+
+function clampAlpha(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return 1;
+  }
+  return Math.min(1, Math.max(0, number));
+}
+
+function hexToColorParts(value) {
+  const parsed = parseHexColor(value, { allowAlpha: true });
+  if (!parsed) {
+    return null;
+  }
+
+  const body = parsed.slice(1);
+  const r = Number.parseInt(body.slice(0, 2), 16);
+  const g = Number.parseInt(body.slice(2, 4), 16);
+  const b = Number.parseInt(body.slice(4, 6), 16);
+  const a = body.length === 8 ? Number.parseInt(body.slice(6, 8), 16) / 255 : 1;
+  return { r, g, b, a };
+}
+
+function colorPartsToHex({ r = 0, g = 0, b = 0, a = 1 } = {}) {
+  const alpha = clampAlpha(a);
+  const toHex = (number) => clampColorByte(number).toString(16).padStart(2, "0").toUpperCase();
+  const base = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  if (alpha >= 0.999) {
+    return base;
+  }
+  return `${base}${toHex(Math.round(alpha * 255))}`;
+}
+
+function parseCssColorValue(value, preferredFormat = "") {
+  const hex = parseHexColor(value, { allowAlpha: true });
+  if (hex) {
+    return { hex, format: preferredFormat || "hex" };
+  }
+
+  const tripletMatch = String(value || "").trim().match(
+    /^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(0|1|0?\.\d+))?$/,
+  );
+  if (tripletMatch) {
+    return {
+      hex: colorPartsToHex({
+        r: tripletMatch[1],
+        g: tripletMatch[2],
+        b: tripletMatch[3],
+        a: tripletMatch[4] ?? 1,
+      }),
+      format: preferredFormat || (tripletMatch[4] ? "rgba-triplet" : "rgb-triplet"),
+    };
+  }
+
+  const rgbMatch = String(value || "").trim().match(
+    /^(rgba?)\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/i,
+  );
+  if (rgbMatch) {
+    return {
+      hex: colorPartsToHex({
+        r: rgbMatch[2],
+        g: rgbMatch[3],
+        b: rgbMatch[4],
+        a: rgbMatch[5] ?? 1,
+      }),
+      format: preferredFormat || (rgbMatch[1].toLowerCase() === "rgba" ? "rgba-function" : "rgb-function"),
+    };
+  }
+
+  return null;
+}
+
+function formatCssColorValue(hexValue, { colorFormat = "", fallbackValue = "" } = {}) {
+  const parts = hexToColorParts(hexValue) || hexToColorParts(fallbackValue) || { r: 0, g: 0, b: 0, a: 1 };
+  const format = colorFormat || parseCssColorValue(fallbackValue)?.format || "hex";
+
+  if (format === "rgb-triplet") {
+    return `${parts.r},${parts.g},${parts.b}`;
+  }
+  if (format === "rgba-triplet") {
+    return `${parts.r},${parts.g},${parts.b},${Number(parts.a.toFixed(3))}`;
+  }
+  if (format === "rgb-function") {
+    return `rgb(${parts.r}, ${parts.g}, ${parts.b})`;
+  }
+  if (format === "rgba-function") {
+    return `rgba(${parts.r}, ${parts.g}, ${parts.b}, ${Number(parts.a.toFixed(3))})`;
+  }
+
+  return colorPartsToHex(parts);
+}
+
+function colorInput(target, key, onAny, options = {}) {
   const wrap = document.createElement("div");
   wrap.className = "tl-color-control";
 
@@ -2601,15 +3318,28 @@ function colorInput(target, key, onAny) {
   hex.autocapitalize = "off";
   hex.spellcheck = false;
 
-  const initial = normalizeHexColor(target[key], { allowAlpha: true, fallback: "#000000" });
+  const initial = parseCssColorValue(target[key], options.colorFormat)?.hex
+    || normalizeHexColor(target[key], { allowAlpha: true, fallback: "#000000" });
   hex.value = initial;
   picker.value = initial.slice(0, 7);
 
+  const syncValue = () => {
+    const next = parseCssColorValue(target[key], options.colorFormat)?.hex
+      || normalizeHexColor(target[key], { allowAlpha: true, fallback: "#000000" });
+    hex.value = next;
+    picker.value = next.slice(0, 7);
+    hex.classList.remove("is-invalid");
+  };
+
   picker.addEventListener("input", () => {
-    const current = parseHexColor(target[key], { allowAlpha: true }) || parseHexColor(hex.value, { allowAlpha: true });
+    const current = parseCssColorValue(target[key], options.colorFormat)?.hex
+      || parseHexColor(hex.value, { allowAlpha: true });
     const alpha = current && current.length === 9 ? current.slice(7) : "";
     const next = `${picker.value.toUpperCase()}${alpha}`;
-    target[key] = next;
+    target[key] = formatCssColorValue(next, {
+      colorFormat: options.colorFormat,
+      fallbackValue: target[key],
+    });
     hex.value = next;
     hex.classList.remove("is-invalid");
     onAny();
@@ -2630,7 +3360,10 @@ function colorInput(target, key, onAny) {
       return;
     }
 
-    target[key] = parsed;
+    target[key] = formatCssColorValue(parsed, {
+      colorFormat: options.colorFormat,
+      fallbackValue: target[key],
+    });
     hex.value = parsed;
     picker.value = parsed.slice(0, 7);
     onAny();
@@ -2639,15 +3372,20 @@ function colorInput(target, key, onAny) {
   hex.addEventListener("blur", () => {
     const parsed = parseHexColor(hex.value, { allowAlpha: true });
     if (!parsed) {
-      const fallback = normalizeHexColor(target[key], { allowAlpha: true, fallback: "#000000" });
+      const fallback = parseCssColorValue(target[key], options.colorFormat)?.hex
+        || normalizeHexColor(target[key], { allowAlpha: true, fallback: "#000000" });
       hex.value = fallback;
       picker.value = fallback.slice(0, 7);
       hex.classList.remove("is-invalid");
       return;
     }
 
-    const normalizedTarget = normalizeHexColor(target[key], { allowAlpha: true, fallback: "#000000" });
-    target[key] = parsed;
+    const normalizedTarget = parseCssColorValue(target[key], options.colorFormat)?.hex
+      || normalizeHexColor(target[key], { allowAlpha: true, fallback: "#000000" });
+    target[key] = formatCssColorValue(parsed, {
+      colorFormat: options.colorFormat,
+      fallbackValue: target[key],
+    });
     hex.value = parsed;
     picker.value = parsed.slice(0, 7);
     hex.classList.remove("is-invalid");
@@ -2656,6 +3394,7 @@ function colorInput(target, key, onAny) {
     }
   });
 
+  wrap._tlSync = syncValue;
   wrap.append(picker, hex);
   return wrap;
 }
@@ -2672,6 +3411,9 @@ function textInput(target, key, onAny, placeholder = "") {
     onAny();
   });
 
+  input._tlSync = () => {
+    input.value = target[key] ?? "";
+  };
   return input;
 }
 
@@ -2701,6 +3443,9 @@ function numberInput(target, key, onAny, step = 1, min, max) {
     onAny();
   });
 
+  input._tlSync = () => {
+    input.value = target[key] ?? 0;
+  };
   return input;
 }
 
@@ -2722,6 +3467,10 @@ function booleanInput(target, key, onAny) {
     onAny();
   });
 
+  wrap._tlSync = () => {
+    input.checked = Boolean(target[key]);
+    text.textContent = input.checked ? "On" : "Off";
+  };
   wrap.append(input, text);
   return wrap;
 }
@@ -2751,6 +3500,16 @@ function selectInput(target, key, onAny, options = []) {
     onAny();
   });
 
+  input._tlSync = () => {
+    const current = String(target[key] ?? options?.[0]?.value ?? "");
+    input.value = current;
+    if (input.value !== current && options?.length) {
+      input.value = String(options[0].value);
+    }
+    if (input.value) {
+      target[key] = input.value;
+    }
+  };
   return input;
 }
 
@@ -2764,6 +3523,10 @@ function textareaInput(target, key, onAny, placeholder = "") {
     target[key] = textarea.value;
     onAny();
   });
+
+  textarea._tlSync = () => {
+    textarea.value = target[key] ?? "";
+  };
 
   return textarea;
 }
@@ -2862,7 +3625,7 @@ function section(title, options = {}) {
   return sectionRef;
 }
 
-function addColorGrid(body, title, objectRef, keys, onAny) {
+function addColorGrid(body, title, objectRef, keys, onAny, registerControl = null) {
   const sec = section(title, {
     id: slugifyThemeName(title, "colors"),
     meta: `${keys.length} colors`,
@@ -2872,8 +3635,10 @@ function addColorGrid(body, title, objectRef, keys, onAny) {
   grid.className = "tl-grid";
 
   for (const key of keys) {
-    const { wrap, right } = row(key);
-    right.appendChild(colorInput(objectRef, key, onAny));
+    const { wrap, right } = row(key, [key, "color"]);
+    const input = colorInput(objectRef, key, onAny);
+    right.appendChild(input);
+    registerControl?.(input);
     grid.appendChild(wrap);
   }
 
@@ -2882,7 +3647,7 @@ function addColorGrid(body, title, objectRef, keys, onAny) {
   return sec;
 }
 
-function addMixedGrid(body, title, objectRef, spec, onAny) {
+function addMixedGrid(body, title, objectRef, spec, onAny, registerControl = null) {
   const sec = section(title, {
     id: slugifyThemeName(title, "section"),
     meta: `${spec.length} controls`,
@@ -2893,11 +3658,11 @@ function addMixedGrid(body, title, objectRef, spec, onAny) {
 
   for (const field of spec) {
     const { key, label, type, step, placeholder, min, max, options } = field;
-    const { wrap, right } = row(label || key);
+    const { wrap, right } = row(label || key, [key, label, placeholder, options]);
 
     let input;
     if (type === "color") {
-      input = colorInput(objectRef, key, onAny);
+      input = colorInput(objectRef, key, onAny, field);
     } else if (type === "number") {
       input = numberInput(objectRef, key, onAny, step ?? 1, min, max);
     } else if (type === "boolean") {
@@ -2909,6 +3674,7 @@ function addMixedGrid(body, title, objectRef, spec, onAny) {
     }
 
     right.appendChild(input);
+    registerControl?.(input);
     grid.appendChild(wrap);
   }
 
@@ -2924,7 +3690,7 @@ function buildAdvancedCssSection(body, theme, onAny) {
     searchTerms: ["Scope selector", "CSS Variables", "Raw CSS", "custom css"],
   });
 
-  const scope = row("Scope selector");
+  const scope = row("Scope selector", ["scope", ":root", "selector"]);
   scope.right.appendChild(textInput(theme.custom_css, "scope", onAny, ":root"));
   sec.body.appendChild(scope.wrap);
 
@@ -3023,22 +3789,69 @@ function addExtensionSections(body, theme, providers, onAny, callbacks = {}) {
   const extensions = theme.colors.extensions || (theme.colors.extensions = {});
   let defaultsApplied = false;
   const sections = [];
+  const onExtensionAny = ({ preview = true } = {}) => onAny({
+    preview,
+    applyExtensionSettings: true,
+  });
+  const extensionStylingEnabled = isThemeLabExtensionStylingEnabled(theme);
 
   for (const provider of providers) {
     runtime.providerIndex[provider.id] = provider;
     const providerExtensions = extensions[provider.id] || (extensions[provider.id] = {});
 
-    for (const [sectionName, items] of Object.entries(provider.sections || {})) {
-      const sec = section(`Extension - ${provider.title} / ${sectionName}`, {
-        id: slugifyThemeName(`extension-${provider.id}-${sectionName}`, "extension"),
-        meta: `${(items || []).length} controls`,
-        searchTerms: [
-          provider.id,
-          provider.title,
+    const providerSections = Object.entries(provider.sections || {});
+    const totalControls = providerSections.reduce((sum, [, items]) => sum + (items?.length || 0), 0);
+    const sec = section(`Extension - ${provider.title}`, {
+      id: slugifyThemeName(`extension-${provider.id}`, "extension"),
+      meta: `${totalControls} controls`,
+      searchTerms: [
+        provider.id,
+        provider.title,
+        "extension",
+        "theme",
+        "style",
+        "css",
+        ...providerSections.flatMap(([sectionName, items]) => [
           sectionName,
-          ...(items || []).flatMap((item) => [item.key, item.label, item.options || []]),
-        ],
-      });
+          ...(items || []).flatMap((item) => [item.key, item.label, item.options || [], item.settingId, item.cssVar, item.source]),
+        ]),
+      ],
+    });
+    sec.wrap.classList.toggle("is-disabled", !extensionStylingEnabled);
+
+    const resetAction = sec.addAction("Reset", () => {
+      for (const [, items] of providerSections) {
+        for (const item of items || []) {
+          if (item.default !== undefined) {
+            providerExtensions[item.key] = clone(item.default);
+          } else {
+            delete providerExtensions[item.key];
+          }
+        }
+      }
+      onExtensionAny();
+      callbacks.refresh?.();
+    });
+    resetAction.disabled = !extensionStylingEnabled;
+
+    for (const [sectionName, items] of providerSections) {
+      const group = document.createElement("div");
+      group.className = "tl-extension-group";
+      group.dataset.tlExtensionGroup = "true";
+
+      const groupHeader = document.createElement("div");
+      groupHeader.className = "tl-extension-group-header";
+
+      const groupTitle = document.createElement("div");
+      groupTitle.className = "tl-extension-group-title";
+      groupTitle.textContent = sectionName;
+
+      const groupMeta = document.createElement("div");
+      groupMeta.className = "tl-extension-group-meta";
+      groupMeta.textContent = `${(items || []).length} control${(items || []).length === 1 ? "" : "s"}`;
+
+      groupHeader.append(groupTitle, groupMeta);
+
       const grid = document.createElement("div");
       grid.className = "tl-grid";
 
@@ -3048,45 +3861,46 @@ function addExtensionSections(body, theme, providers, onAny, callbacks = {}) {
           defaultsApplied = true;
         }
 
-        const { wrap, right } = row(item.label || item.key);
+        const { wrap, right } = row(item.label || item.key, [
+          item.key,
+          item.label,
+          item.options || [],
+          item.settingId,
+          item.cssVar,
+          item.source,
+          sectionName,
+          provider.title,
+        ]);
         let input;
 
         if (item.type === "color") {
-          input = colorInput(providerExtensions, item.key, onAny);
+          input = colorInput(providerExtensions, item.key, onExtensionAny, item);
         } else if (item.type === "number") {
-          input = numberInput(providerExtensions, item.key, onAny, item.step ?? 1, item.min, item.max);
+          input = numberInput(providerExtensions, item.key, onExtensionAny, item.step ?? 1, item.min, item.max);
         } else if (item.type === "boolean") {
-          input = booleanInput(providerExtensions, item.key, onAny);
+          input = booleanInput(providerExtensions, item.key, onExtensionAny);
         } else if (item.type === "select") {
-          input = selectInput(providerExtensions, item.key, onAny, item.options || []);
+          input = selectInput(providerExtensions, item.key, onExtensionAny, item.options || []);
         } else {
-          input = textInput(providerExtensions, item.key, onAny, item.placeholder ?? "");
+          input = textInput(providerExtensions, item.key, onExtensionAny, item.placeholder ?? "");
         }
 
+        setControlDisabled(input, !extensionStylingEnabled);
         right.appendChild(input);
+        callbacks.registerControl?.(input);
         grid.appendChild(wrap);
       }
 
-      sec.addAction("Reset", () => {
-        for (const item of items || []) {
-          if (item.default !== undefined) {
-            providerExtensions[item.key] = clone(item.default);
-          } else {
-            delete providerExtensions[item.key];
-          }
-        }
-        onAny();
-        callbacks.refresh?.();
-      });
-
-      sec.body.appendChild(grid);
-      body.appendChild(sec.wrap);
-      sections.push(sec);
+      group.append(groupHeader, grid);
+      sec.body.appendChild(group);
     }
+
+    body.appendChild(sec.wrap);
+    sections.push(sec);
   }
 
   if (defaultsApplied) {
-    onAny();
+    onExtensionAny();
   }
 
   return sections;
@@ -3095,6 +3909,7 @@ function addExtensionSections(body, theme, providers, onAny, callbacks = {}) {
 function createEditorTools(theme, onAny, sections, callbacks = {}) {
   const wrap = document.createElement("div");
   wrap.className = "tl-editor-tools";
+  ensureThemeLabOptions(theme);
 
   const topRow = document.createElement("div");
   topRow.className = "tl-editor-tools-row";
@@ -3128,94 +3943,198 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
   collapseButton.type = "button";
   collapseButton.textContent = "Collapse all";
 
-  actions.append(expandButton, collapseButton);
+  const clearSearchButton = document.createElement("button");
+  clearSearchButton.className = "tl-mini";
+  clearSearchButton.type = "button";
+  clearSearchButton.textContent = "Clear search";
+
+  actions.append(expandButton, collapseButton, clearSearchButton);
   topRow.append(searchWrap, actions);
 
-  const presetRow = document.createElement("div");
-  presetRow.className = "tl-editor-presets";
+  const navigationRow = document.createElement("div");
+  navigationRow.className = "tl-editor-tools-row tl-editor-tools-row-secondary";
 
-  const presetLabel = document.createElement("span");
-  presetLabel.className = "tl-editor-tools-label";
-  presetLabel.textContent = "Canvas Presets";
-  presetRow.appendChild(presetLabel);
+  const jumpWrap = document.createElement("label");
+  jumpWrap.className = "tl-inline-input tl-editor-jump";
 
-  for (const [presetKey, label] of [
-    ["compact", "Compact"],
-    ["default", "Default"],
-    ["spacious", "Spacious"],
-    ["presentation", "Presentation"],
-  ]) {
-    const button = document.createElement("button");
-    button.className = "tl-mini";
-    button.type = "button";
-    button.textContent = label;
-    button.addEventListener("click", () => {
-      applyCanvasPreset(theme, presetKey);
-      onAny();
-      if (typeof callbacks.refresh === "function") {
-        callbacks.refresh();
-      } else {
-        refreshFilter();
-      }
-    });
-    presetRow.appendChild(button);
-  }
+  const jumpLabel = document.createElement("span");
+  jumpLabel.textContent = "Jump to section";
 
-  const typographyRow = document.createElement("div");
-  typographyRow.className = "tl-editor-presets";
+  const jumpSelect = document.createElement("select");
+  jumpSelect.className = "tl-text-input tl-select-input tl-editor-jump-select";
 
-  const typographyLabel = document.createElement("span");
-  typographyLabel.className = "tl-editor-tools-label";
-  typographyLabel.textContent = "UI Density";
-  typographyRow.appendChild(typographyLabel);
+  const jumpPlaceholder = document.createElement("option");
+  jumpPlaceholder.value = "";
+  jumpPlaceholder.textContent = "Choose section";
+  jumpSelect.appendChild(jumpPlaceholder);
+  jumpSelect.value = "";
 
-  for (const [presetKey, label] of [
-    ["compact", "Compact"],
-    ["default", "Default"],
-    ["comfortable", "Comfortable"],
-    ["presentation", "Presentation"],
-  ]) {
-    const button = document.createElement("button");
-    button.className = "tl-mini";
-    button.type = "button";
-    button.textContent = label;
-    button.addEventListener("click", () => {
-      applyTypographyPreset(theme, presetKey);
-      onAny();
-      if (typeof callbacks.refresh === "function") {
-        callbacks.refresh();
-      } else {
-        refreshFilter();
-      }
-    });
-    typographyRow.appendChild(button);
-  }
+  jumpWrap.append(jumpLabel, jumpSelect);
+  navigationRow.appendChild(jumpWrap);
+
+  const canvasButtons = new Map();
+  const typographyButtons = new Map();
+  const extensionToggleWrap = document.createElement("label");
+  const extensionToggleInput = document.createElement("input");
+  const extensionToggleText = document.createElement("span");
+
+  const buildPresetRow = (labelText, presets, applyPreset, buttonMap) => {
+    const rowWrap = document.createElement("div");
+    rowWrap.className = "tl-editor-presets";
+
+    const label = document.createElement("span");
+    label.className = "tl-editor-tools-label";
+    label.textContent = labelText;
+
+    const cluster = document.createElement("div");
+    cluster.className = "tl-preset-cluster";
+
+    for (const [presetKey, presetLabel] of presets) {
+      const button = document.createElement("button");
+      button.className = "tl-preset-chip";
+      button.type = "button";
+      button.textContent = presetLabel;
+      button.addEventListener("click", () => {
+        applyPreset(presetKey);
+        onAny();
+        if (typeof callbacks.syncControls === "function") {
+          callbacks.syncControls();
+        } else if (typeof callbacks.refresh === "function") {
+          callbacks.refresh();
+        } else {
+          refreshFilter();
+          syncPresetState();
+        }
+      });
+      cluster.appendChild(button);
+      buttonMap.set(presetKey, button);
+    }
+
+    rowWrap.append(label, cluster);
+    return rowWrap;
+  };
+
+  const presetRow = buildPresetRow(
+    "Canvas Presets",
+    [
+      ["compact", "Compact"],
+      ["default", "Default"],
+      ["spacious", "Spacious"],
+      ["presentation", "Presentation"],
+    ],
+    (presetKey) => applyCanvasPreset(theme, presetKey),
+    canvasButtons,
+  );
+
+  const typographyRow = buildPresetRow(
+    "UI Density",
+    [
+      ["compact", "Compact"],
+      ["default", "Default"],
+      ["comfortable", "Comfortable"],
+      ["presentation", "Presentation"],
+    ],
+    (presetKey) => applyTypographyPreset(theme, presetKey),
+    typographyButtons,
+  );
+
+  const extensionRow = document.createElement("div");
+  extensionRow.className = "tl-editor-presets tl-extension-tools-row";
+
+  const extensionLabel = document.createElement("span");
+  extensionLabel.className = "tl-editor-tools-label";
+  extensionLabel.textContent = "Extension Styling";
+
+  const extensionCluster = document.createElement("div");
+  extensionCluster.className = "tl-preset-cluster tl-extension-tools";
+
+  extensionToggleWrap.className = "tl-inline-toggle";
+  extensionToggleInput.type = "checkbox";
+  extensionToggleInput.checked = isThemeLabExtensionStylingEnabled(theme);
+  extensionToggleText.textContent = extensionToggleInput.checked ? "Enabled" : "Disabled";
+  extensionToggleWrap.append(extensionToggleInput, extensionToggleText);
+
+  const extensionInfo = document.createElement("button");
+  extensionInfo.type = "button";
+  extensionInfo.className = "tl-tooltip-chip";
+  extensionInfo.textContent = "i";
+  extensionInfo.classList.add("tl-has-tooltip");
+  extensionInfo.dataset.tooltip = EXTENSION_STYLING_TOOLTIP;
+  extensionInfo.setAttribute("aria-label", EXTENSION_STYLING_TOOLTIP);
+
+  const reloadButton = document.createElement("button");
+  reloadButton.className = "tl-mini";
+  reloadButton.type = "button";
+  reloadButton.textContent = "Reload";
+  reloadButton.addEventListener("click", () => {
+    callbacks.reloadAndReopenStudio?.("editor");
+  });
+
+  extensionToggleInput.addEventListener("change", () => {
+    setThemeLabExtensionStylingEnabled(theme, extensionToggleInput.checked);
+    extensionToggleText.textContent = extensionToggleInput.checked ? "Enabled" : "Disabled";
+    onAny({ preview: false, applyExtensionSettings: true });
+    callbacks.previewTheme?.(true);
+    callbacks.refresh?.();
+  });
+
+  extensionCluster.append(extensionToggleWrap, extensionInfo, reloadButton);
+  extensionRow.append(extensionLabel, extensionCluster);
 
   const status = document.createElement("div");
   status.className = "tl-subtle tl-editor-tools-status";
+
+  const canvasHint = document.createElement("div");
+  canvasHint.className = "tl-editor-helpline";
+
+  const typographyHint = document.createElement("div");
+  typographyHint.className = "tl-editor-helpline";
 
   const empty = document.createElement("div");
   empty.className = "tl-empty tl-editor-empty";
   empty.hidden = true;
   empty.textContent = "No editor sections match the current filter.";
 
-  function refreshFilter() {
-    const query = String(searchInput.value || "").trim().toLowerCase();
-    let visibleCount = 0;
+  function syncSectionOptions() {
+    const currentValue = jumpSelect.value;
+    jumpSelect.replaceChildren(jumpPlaceholder);
 
     for (const sectionRef of sections) {
-      if (setSectionFilterState(sectionRef, query)) {
-        visibleCount += 1;
+      const option = document.createElement("option");
+      option.value = String(sectionRef.wrap.dataset.sectionId || "");
+      option.textContent = sectionRef.wrap.querySelector(".tl-section-title")?.textContent || option.value;
+      jumpSelect.appendChild(option);
+    }
+
+    if (currentValue && Array.from(jumpSelect.options).some((option) => option.value === currentValue)) {
+      jumpSelect.value = currentValue;
+    } else {
+      jumpSelect.value = "";
+    }
+  }
+
+  function refreshFilter() {
+    const query = String(searchInput.value || "").trim().toLowerCase();
+    let visibleSections = 0;
+    let visibleRows = 0;
+    let totalRows = 0;
+
+    for (const sectionRef of sections) {
+      const result = setSectionFilterState(sectionRef, query);
+      totalRows += result.totalRows;
+      visibleRows += result.visibleRows;
+      if (result.match) {
+        visibleSections += 1;
       }
     }
 
     const totalCount = sections.length;
     if (query) {
-      status.textContent = `${visibleCount} of ${totalCount} sections match`;
+      status.textContent = `${visibleSections} of ${totalCount} sections · ${visibleRows} controls match`;
     } else {
-      status.textContent = `${totalCount} editor sections`;
+      status.textContent = `${totalCount} editor sections · ${totalRows} controls`;
     }
-    empty.hidden = !(query && visibleCount === 0);
+    empty.hidden = !(query && visibleSections === 0);
   }
 
   expandButton.addEventListener("click", () => {
@@ -3232,29 +4151,96 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
     refreshFilter();
   });
 
+  clearSearchButton.addEventListener("click", () => {
+    searchInput.value = "";
+    refreshFilter();
+    searchInput.focus();
+  });
+
   searchInput.addEventListener("input", refreshFilter);
+  jumpSelect.addEventListener("change", () => {
+    const targetId = String(jumpSelect.value || "").trim();
+    if (!targetId) {
+      return;
+    }
 
-  wrap.append(topRow, presetRow, typographyRow, status, empty);
+    const sectionRef = sections.find((entry) => String(entry.wrap.dataset.sectionId || "") === targetId);
+    if (!sectionRef) {
+      return;
+    }
+
+    sectionRef.setCollapsed(false);
+    sectionRef.wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+    jumpSelect.value = "";
+  });
+
+  function syncPresetState() {
+    const activeCanvasPreset = resolveCanvasPresetKey(theme);
+    const activeTypographyPreset = resolveTypographyPresetKey(theme);
+
+    for (const [presetKey, button] of canvasButtons.entries()) {
+      button.classList.toggle("is-active", presetKey === activeCanvasPreset);
+    }
+
+    for (const [presetKey, button] of typographyButtons.entries()) {
+      button.classList.toggle("is-active", presetKey === activeTypographyPreset);
+    }
+
+    extensionToggleInput.checked = isThemeLabExtensionStylingEnabled(theme);
+    extensionToggleText.textContent = extensionToggleInput.checked ? "Enabled" : "Disabled";
+
+    canvasHint.textContent = THEME_LAB_CANVAS_PRESET_DESCRIPTIONS[activeCanvasPreset || "custom"];
+    typographyHint.textContent = THEME_LAB_TYPOGRAPHY_PRESET_DESCRIPTIONS[activeTypographyPreset || "custom"];
+  }
+
+  wrap.append(topRow, navigationRow, presetRow, canvasHint, typographyRow, typographyHint, extensionRow, status, empty);
+  syncSectionOptions();
   refreshFilter();
+  syncPresetState();
 
-  return { wrap, refreshFilter };
+  return { wrap, refreshFilter, syncPresetState, syncSectionOptions };
 }
 
 async function buildEditorSections(body, theme, onAny, callbacks = {}) {
-  ensureThemeLabCanvasConfig(theme);
+  ensureThemeLabOptions(theme);
   const sections = [];
-  const tools = createEditorTools(theme, onAny, sections, callbacks);
+  const controlSyncers = [];
+  const registerControl = (control) => {
+    if (typeof control?._tlSync === "function") {
+      controlSyncers.push(control._tlSync);
+    }
+    return control;
+  };
+  const toolCallbacks = {
+    ...callbacks,
+    syncControls: () => {},
+  };
+  const tools = createEditorTools(theme, onAny, sections, toolCallbacks);
   body.appendChild(tools.wrap);
+
+  const syncControls = () => {
+    for (const sync of controlSyncers) {
+      try {
+        sync();
+      } catch {
+        // ignore stale control sync failures
+      }
+    }
+    tools.syncPresetState?.();
+    tools.syncSectionOptions?.();
+    tools.refreshFilter();
+  };
+  toolCallbacks.syncControls = syncControls;
 
   const meta = section("Theme Meta", {
     id: "theme-meta",
-    meta: "1 control",
-    searchTerms: ["Theme name", "name"],
+    meta: "2 controls",
+    searchTerms: ["Theme name", "Theme description", "name", "description"],
   });
   const metaGrid = document.createElement("div");
   metaGrid.className = "tl-grid";
 
-  const nameRow = row("Theme name");
+  const nameRow = row("Theme name", ["name", "theme", "meta"]);
   const nameInput = document.createElement("input");
   nameInput.type = "text";
   nameInput.className = "tl-text-input";
@@ -3272,14 +4258,30 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
       syncThemeName();
     }
   });
+  nameInput._tlSync = () => {
+    nameInput.value = theme.name || "Theme";
+  };
   nameRow.right.appendChild(nameInput);
+  registerControl(nameInput);
 
-  metaGrid.append(nameRow.wrap);
+  const descriptionRow = row("Theme description", ["description", "summary", "saved themes", "meta"]);
+  const descriptionInput = textareaInput(
+    theme,
+    "description",
+    () => onAny({ preview: false }),
+    "Short description shown in Saved Themes",
+  );
+  descriptionInput.rows = 3;
+  descriptionInput.classList.add("tl-theme-description-input");
+  descriptionRow.right.appendChild(descriptionInput);
+  registerControl(descriptionInput);
+
+  metaGrid.append(nameRow.wrap, descriptionRow.wrap);
   meta.body.appendChild(metaGrid);
   body.appendChild(meta.wrap);
   sections.push(meta);
 
-  const nodeSlotSection = addColorGrid(body, "Node Slot Colors", theme.colors.node_slot, Object.keys(theme.colors.node_slot), onAny);
+  const nodeSlotSection = addColorGrid(body, "Node Slot Colors", theme.colors.node_slot, Object.keys(theme.colors.node_slot), onAny, registerControl);
   nodeSlotSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.node_slot, TEMPLATE.colors.node_slot, Object.keys(TEMPLATE.colors.node_slot));
     onAny();
@@ -3316,7 +4318,7 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
     { key: "BADGE_BG_COLOR", type: "color" },
   ];
 
-  const litegraphSection = addMixedGrid(body, "LiteGraph Canvas", theme.colors.litegraph_base, litegraphSpec, onAny);
+  const litegraphSection = addMixedGrid(body, "LiteGraph Canvas", theme.colors.litegraph_base, litegraphSpec, onAny, registerControl);
   litegraphSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.litegraph_base, TEMPLATE.colors.litegraph_base, litegraphSpec);
     onAny();
@@ -3324,7 +4326,7 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   });
   sections.push(litegraphSection);
 
-  const canvasGeometrySection = addMixedGrid(body, "Canvas Geometry", theme.theme_lab.canvas, THEME_LAB_CANVAS_FIELDS, onAny);
+  const canvasGeometrySection = addMixedGrid(body, "Canvas Geometry", theme.theme_lab.canvas, THEME_LAB_CANVAS_FIELDS, onAny, registerControl);
   canvasGeometrySection.addAction("Reset", () => {
     assignFieldDefaults(theme.theme_lab.canvas, THEME_LAB_CANVAS_DEFAULTS, THEME_LAB_CANVAS_FIELDS);
     onAny();
@@ -3332,7 +4334,7 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   });
   sections.push(canvasGeometrySection);
 
-  const comfyCoreSection = addMixedGrid(body, "Comfy UI Colors", theme.colors.comfy_base, COMFY_CORE_COLOR_FIELDS, onAny);
+  const comfyCoreSection = addMixedGrid(body, "Comfy UI Colors", theme.colors.comfy_base, COMFY_CORE_COLOR_FIELDS, onAny, registerControl);
   comfyCoreSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_CORE_COLOR_FIELDS);
     onAny();
@@ -3340,7 +4342,7 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   });
   sections.push(comfyCoreSection);
 
-  const comfyOptionalSection = addMixedGrid(body, "Comfy UI Optional Colors", theme.colors.comfy_base, COMFY_OPTIONAL_COLOR_FIELDS, onAny);
+  const comfyOptionalSection = addMixedGrid(body, "Comfy UI Optional Colors", theme.colors.comfy_base, COMFY_OPTIONAL_COLOR_FIELDS, onAny, registerControl);
   comfyOptionalSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_OPTIONAL_COLOR_FIELDS);
     onAny();
@@ -3348,7 +4350,7 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   });
   sections.push(comfyOptionalSection);
 
-  const comfyDesignSection = addMixedGrid(body, "Design System Colors", theme.colors.comfy_base, COMFY_DESIGN_SYSTEM_COLOR_FIELDS, onAny);
+  const comfyDesignSection = addMixedGrid(body, "Design System Colors", theme.colors.comfy_base, COMFY_DESIGN_SYSTEM_COLOR_FIELDS, onAny, registerControl);
   comfyDesignSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_DESIGN_SYSTEM_COLOR_FIELDS);
     onAny();
@@ -3356,7 +4358,7 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   });
   sections.push(comfyDesignSection);
 
-  const comfyStyleSection = addMixedGrid(body, "Comfy UI Styling", theme.colors.comfy_base, COMFY_STYLE_FIELDS, onAny);
+  const comfyStyleSection = addMixedGrid(body, "Comfy UI Styling", theme.colors.comfy_base, COMFY_STYLE_FIELDS, onAny, registerControl);
   comfyStyleSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_STYLE_FIELDS);
     onAny();
@@ -3364,7 +4366,7 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   });
   sections.push(comfyStyleSection);
 
-  const typographySection = addMixedGrid(body, "Fonts & Layout", theme.colors.comfy_base, COMFY_TYPOGRAPHY_FIELDS, onAny);
+  const typographySection = addMixedGrid(body, "Fonts & Layout", theme.colors.comfy_base, COMFY_TYPOGRAPHY_FIELDS, onAny, registerControl);
   typographySection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_TYPOGRAPHY_FIELDS);
     onAny();
@@ -3383,10 +4385,17 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   sections.push(advancedCssSection);
 
   const providers = await getProviders();
+  if (normalizeThemeExtensionValues(theme)) {
+    onAny({ preview: false });
+  }
   if (providers.length) {
-    sections.push(...addExtensionSections(body, theme, providers, onAny, callbacks));
+    sections.push(...addExtensionSections(body, theme, providers, onAny, {
+      ...callbacks,
+      registerControl,
+    }));
   }
 
+  syncControls();
   tools.refreshFilter();
 }
 
@@ -3421,6 +4430,8 @@ function createStudioDialog() {
     setThemePreviewFromPicker,
     clearThemePreview,
     buildEditorSections,
+    refreshExtensionProviders,
+    reloadAndReopenStudio,
     markRecordUpdated,
     scheduleLibraryPersist,
   });
@@ -3437,6 +4448,7 @@ async function openStudio(page = "themes") {
   await ensureLibraryLoaded();
   await ensurePreviewIndexLoaded();
   loadCssOnce();
+  await refreshExtensionProviders();
   await getStudioDialog().open(page);
 }
 
@@ -3448,6 +4460,7 @@ function renderSidebarLauncher(el) {
   }
 
   loadCssOnce();
+  const suppressedTargets = suppressSidebarLauncherHost(el);
 
   const container = document.createElement("div");
   container.className = "tl-launcher";
@@ -3479,14 +4492,19 @@ function renderSidebarLauncher(el) {
 
   // Open the studio immediately when the sidebar icon/tab is clicked.
   queueMicrotask(() => {
-    void openStudio("themes");
-    // Best effort: close the sidebar panel so the icon behaves like a direct launcher.
-    setTimeout(() => {
-      void tryExecuteCommand("Workspace.ToggleSidebarTab.themeLabTab");
-    }, 0);
+    const closed = tryExecuteCommand("Workspace.ToggleSidebarTab.themeLabTab");
+    const open = () => void openStudio("themes");
+    if (closed) {
+      setTimeout(open, 0);
+    } else {
+      open();
+    }
+    setTimeout(() => restoreSidebarLauncherHost(suppressedTargets), 500);
   });
 
-  return () => {};
+  return () => {
+    restoreSidebarLauncherHost(suppressedTargets);
+  };
 }
 
 function renderBottomPanelTab(el) {
@@ -3586,7 +4604,7 @@ async function commandImportTheme() {
   await ensureLibraryLoaded();
   const count = await importThemesFromFilePicker();
   if (count > 0 && isLivePreviewEnabled()) {
-    applyTheme(getActiveTheme());
+    applyTheme(getActiveTheme(), { applyExtensionSettings: true });
   }
   runtime.studioDialog?.refresh();
 }
@@ -3615,7 +4633,7 @@ async function commandResetTheme() {
 
   resetActiveTheme();
   if (isLivePreviewEnabled()) {
-    applyTheme(getActiveTheme());
+    applyTheme(getActiveTheme(), { applyExtensionSettings: true });
   }
 
   runtime.studioDialog?.refresh();
@@ -3638,7 +4656,7 @@ try {
         tooltip: "If enabled, editor changes are applied immediately to UI and canvas.",
         onChange: (newValue) => {
           if (newValue) {
-            ensureLibraryLoaded().then(() => applyTheme(getActiveTheme()));
+            ensureLibraryLoaded().then(() => applyTheme(getActiveTheme(), { applyExtensionSettings: true }));
           }
         },
       },
@@ -3675,9 +4693,13 @@ try {
 
           runtime.providersPromise = null;
           runtime.providerIndex = {};
+          runtime.providerAliasIndex = {};
 
           if (isLivePreviewEnabled()) {
-            ensureLibraryLoaded().then(() => applyTheme(getActiveTheme()));
+            ensureLibraryLoaded().then(async () => {
+              await refreshExtensionProviders();
+              applyTheme(getActiveTheme(), { applyExtensionSettings: true });
+            });
           }
         },
       },
@@ -3771,9 +4793,16 @@ try {
 
       void ensureLibraryLoaded().then(async () => {
         await repairMissingThemeLabPalette();
-        void getProviders();
+        await refreshExtensionProviders();
+        scheduleStartupProviderRefreshes();
         if (isLivePreviewEnabled()) {
-          applyTheme(getActiveTheme());
+          applyTheme(getActiveTheme(), { applyExtensionSettings: true });
+        }
+        const reopenRequest = consumeStudioReopenRequest();
+        if (reopenRequest?.page) {
+          setTimeout(() => {
+            void openStudio(reopenRequest.page);
+          }, 40);
         }
       });
 
