@@ -12,6 +12,13 @@ import {
   ensureThemeLabCanvasConfig,
   applyThemeLabCanvasConfig,
 } from "./theme-lab-canvas.js";
+import {
+  FANCY_GRID_PROVIDER_ID,
+  buildFancyGridProvider,
+  isFancyGridAvailable,
+  applyFancyGridTheme,
+  clearFancyGridTheme,
+} from "./providers/fancy-grid-provider.js";
 
 const EXT_ID = "ThemeLab";
 const VERSION = "2.0.0";
