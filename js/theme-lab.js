@@ -1703,9 +1703,37 @@ function compatManifest(json) {
   return out;
 }
 
-async function loadProviders() {
+function getBuiltinProviders() {
+  const providers = [];
+  const fancyGridProvider = buildFancyGridProvider();
+  if (fancyGridProvider) {
+    providers.push(fancyGridProvider);
+  }
+  return providers;
+}
+
+function mergeProviders(providers) {
   const found = [];
   const seen = new Set();
+  runtime.providerIndex = {};
+
+  for (const provider of providers || []) {
+    const manifest = compatManifest(provider);
+    const key = `${(manifest.id || "").toLowerCase()}:${(manifest.title || "").toLowerCase()}`;
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    found.push(manifest);
+    runtime.providerIndex[manifest.id] = manifest;
+  }
+
+  return found;
+}
+
+async function loadProviders() {
+  const found = [];
 
   for (const url of parseProviderUrls()) {
     try {
@@ -1714,14 +1742,7 @@ async function loadProviders() {
         continue;
       }
 
-      const manifest = compatManifest(await response.json());
-      const key = `${(manifest.id || "").toLowerCase()}:${(manifest.title || "").toLowerCase()}`;
-      if (seen.has(key)) {
-        continue;
-      }
-
-      seen.add(key);
-      found.push(manifest);
+      found.push(await response.json());
     } catch {
       // ignore failed provider URL
     }
@@ -1730,21 +1751,20 @@ async function loadProviders() {
   return found;
 }
 
-function getProviders() {
+async function getProviders() {
   if (!runtime.providersPromise) {
-    runtime.providersPromise = loadProviders().then((providers) => {
-      runtime.providerIndex = {};
-      for (const provider of providers) {
-        runtime.providerIndex[provider.id] = provider;
-      }
-      return providers;
-    }).catch((providerError) => {
+    runtime.providersPromise = loadProviders().catch((providerError) => {
       runtime.providersPromise = null;
       warn("Provider load failed", providerError);
       return [];
     });
   }
-  return runtime.providersPromise;
+
+  const externalProviders = await runtime.providersPromise;
+  return mergeProviders([
+    ...getBuiltinProviders(),
+    ...externalProviders,
+  ]);
 }
 
 function applyComfyBase(colors) {
@@ -1917,8 +1937,14 @@ function applyCustomCSS(customCss) {
 
 function applyExtensionVars(extensionValues) {
   const root = document.documentElement;
+  const valueMap = extensionValues && typeof extensionValues === "object" ? extensionValues : {};
+  const appliedProviders = new Set();
 
-  for (const [providerId, valueMap] of Object.entries(extensionValues || {})) {
+  for (const [providerId, providerValues] of Object.entries(valueMap)) {
+    if (providerId === FANCY_GRID_PROVIDER_ID && applyFancyGridTheme(providerValues)) {
+      appliedProviders.add(providerId);
+    }
+
     const manifest = runtime.providerIndex[providerId];
     if (!manifest) {
       continue;
@@ -1932,13 +1958,17 @@ function applyExtensionVars(extensionValues) {
         }
 
         const key = item.key;
-        if (!Object.prototype.hasOwnProperty.call(valueMap || {}, key)) {
+        if (!Object.prototype.hasOwnProperty.call(providerValues || {}, key)) {
           continue;
         }
 
-        root.style.setProperty(cssVar, valueMap[key]);
+        root.style.setProperty(cssVar, providerValues[key]);
       }
     }
+  }
+
+  if (isFancyGridAvailable() && !appliedProviders.has(FANCY_GRID_PROVIDER_ID) && !Object.prototype.hasOwnProperty.call(valueMap, FANCY_GRID_PROVIDER_ID)) {
+    clearFancyGridTheme();
   }
 }
 
