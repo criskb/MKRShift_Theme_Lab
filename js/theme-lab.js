@@ -5,12 +5,20 @@ import { app } from "/scripts/app.js";
 import { api } from "/scripts/api.js";
 import { ComfyDialog } from "/scripts/ui/dialog.js";
 import { ThemeLabTemplateStudio } from "./studio/template-studio.js";
+import {
+  THEME_LAB_CANVAS_DEFAULTS,
+  THEME_LAB_CANVAS_FIELDS,
+  normalizeThemeLabCanvasConfig,
+  ensureThemeLabCanvasConfig,
+  applyThemeLabCanvasConfig,
+} from "./theme-lab-canvas.js";
 
 const EXT_ID = "ThemeLab";
 const VERSION = "2.0.0";
 
 const LEGACY_CURRENT_KEY = "themelab.currentTheme";
 const LIBRARY_CACHE_KEY = "themelab.library.cache";
+const EDITOR_SECTION_STATE_KEY = "themelab.editor.sectionState";
 const USER_LIBRARY_FILE = "themelab.themes.json";
 const USER_PREVIEW_DIR = "themelab/previews";
 const USER_COMFY_THEME_DIR = "themes";
@@ -18,12 +26,24 @@ const USER_COMFY_THEME_FILE = `${USER_COMFY_THEME_DIR}/Theme Lab.json`;
 const COMFY_SETTING_COLOR_PALETTE = "Comfy.ColorPalette";
 const COMFY_SETTING_CUSTOM_PALETTES = "Comfy.CustomColorPalettes";
 const COMFY_THEME_LAB_ID = "themelab-theme-lab";
-const COMFY_THEME_LAB_COMPAT_IDS = [
-  COMFY_THEME_LAB_ID,
+const COMFY_THEME_LAB_LEGACY_IDS = [
   "themelab-theme-lab-a",
   "themelab-theme-lab-b",
 ];
+const COMFY_THEME_LAB_COMPAT_IDS = [
+  COMFY_THEME_LAB_ID,
+  ...COMFY_THEME_LAB_LEGACY_IDS,
+];
 const DEFAULT_THEME_ID = "custom-theme-lab";
+const VUE_LITEGRAPH_THEME_PROPERTY_MAP = {
+  NODE_BOX_OUTLINE_COLOR: "component-node-border",
+  NODE_DEFAULT_BGCOLOR: "component-node-background",
+  NODE_DEFAULT_BOXCOLOR: "node-component-header-icon",
+  NODE_DEFAULT_COLOR: "node-component-header-surface",
+  NODE_TITLE_COLOR: "node-component-header",
+  WIDGET_BGCOLOR: "component-node-widget-background",
+  WIDGET_TEXT_COLOR: "component-node-foreground",
+};
 
 const SETTINGS = {
   LIVE_PREVIEW: "themelab.livePreview",
@@ -62,6 +82,62 @@ const BUNDLED_THEME_LIBRARY_URL = resolveExtensionUrl("../themes/library.json");
 const BUNDLED_THEME_ROOT_URL = resolveExtensionUrl("../themes/");
 
 const DEFAULT_PROVIDER_URLS = [];
+
+const THEME_LAB_CANVAS_PRESETS = Object.freeze({
+  compact: normalizeThemeLabCanvasConfig({
+    ...THEME_LAB_CANVAS_DEFAULTS,
+    node_title_height: 26,
+    node_slot_height: 18,
+    node_widget_height: 18,
+    node_corner_radius: 6,
+    connection_width: 2.5,
+    link_render_mode: "linear",
+    node_outline_width: 0,
+    widget_outline_width: 0.75,
+    group_outline_width: 0.75,
+    reroute_dot_size: 8,
+    reroute_slot_size: 4,
+    render_connection_borders: false,
+    render_connection_shadows: false,
+    render_connection_arrows: false,
+  }),
+  default: normalizeThemeLabCanvasConfig(THEME_LAB_CANVAS_DEFAULTS),
+  spacious: normalizeThemeLabCanvasConfig({
+    ...THEME_LAB_CANVAS_DEFAULTS,
+    node_title_height: 34,
+    node_slot_height: 22,
+    node_widget_height: 22,
+    node_corner_radius: 10,
+    connection_width: 3.5,
+    link_render_mode: "spline",
+    node_outline_width: 0.25,
+    widget_outline_width: 1.25,
+    group_outline_width: 1.25,
+    reroute_dot_size: 11,
+    reroute_slot_size: 5.5,
+    render_connection_borders: true,
+    render_connection_shadows: true,
+    render_connection_arrows: false,
+  }),
+  presentation: normalizeThemeLabCanvasConfig({
+    ...THEME_LAB_CANVAS_DEFAULTS,
+    node_title_height: 38,
+    node_slot_height: 24,
+    node_widget_height: 24,
+    node_corner_radius: 12,
+    connection_width: 4.5,
+    link_render_mode: "spline",
+    link_marker_shape: "arrow",
+    node_outline_width: 0.5,
+    widget_outline_width: 1.5,
+    group_outline_width: 1.5,
+    reroute_dot_size: 12,
+    reroute_slot_size: 6,
+    render_connection_borders: true,
+    render_connection_shadows: true,
+    render_connection_arrows: true,
+  }),
+});
 
 const TEMPLATE = {
   id: DEFAULT_THEME_ID,
@@ -184,6 +260,9 @@ const TEMPLATE = {
   preview: {
     image_file: "",
   },
+  theme_lab: {
+    canvas: { ...THEME_LAB_CANVAS_DEFAULTS },
+  },
 };
 
 const COMFY_CORE_COLOR_FIELDS = [
@@ -260,6 +339,45 @@ const COMFY_TYPOGRAPHY_FIELDS = [
   { key: "comfy-img-preview-height", type: "text", placeholder: "256px" },
 ];
 
+const THEME_LAB_TYPOGRAPHY_PRESETS = Object.freeze({
+  compact: Object.freeze({
+    "font-inter": TEMPLATE.colors.comfy_base["font-inter"],
+    "comfy-textarea-font-size": "12px",
+    "comfy-tree-explorer-item-padding": "4px 4px",
+    "comfy-topbar-height": "2.25rem",
+    "comfy-widget-min-height": "22",
+    "comfy-widget-max-height": "280",
+    "comfy-widget-height": "auto",
+    "comfy-img-preview-width": "320px",
+    "comfy-img-preview-height": "216px",
+  }),
+  default: Object.freeze(Object.fromEntries(
+    COMFY_TYPOGRAPHY_FIELDS.map((field) => [field.key, TEMPLATE.colors.comfy_base[field.key]]),
+  )),
+  comfortable: Object.freeze({
+    "font-inter": TEMPLATE.colors.comfy_base["font-inter"],
+    "comfy-textarea-font-size": "14px",
+    "comfy-tree-explorer-item-padding": "7px 5px",
+    "comfy-topbar-height": "2.75rem",
+    "comfy-widget-min-height": "26",
+    "comfy-widget-max-height": "360",
+    "comfy-widget-height": "auto",
+    "comfy-img-preview-width": "416px",
+    "comfy-img-preview-height": "272px",
+  }),
+  presentation: Object.freeze({
+    "font-inter": TEMPLATE.colors.comfy_base["font-inter"],
+    "comfy-textarea-font-size": "15px",
+    "comfy-tree-explorer-item-padding": "8px 6px",
+    "comfy-topbar-height": "3rem",
+    "comfy-widget-min-height": "28",
+    "comfy-widget-max-height": "420",
+    "comfy-widget-height": "auto",
+    "comfy-img-preview-width": "448px",
+    "comfy-img-preview-height": "288px",
+  }),
+});
+
 const runtime = {
   library: null,
   loadPromise: null,
@@ -293,6 +411,117 @@ function cleanPreviewKey(value) {
 function slugifyThemeName(value, fallback = "theme") {
   const slug = cleanPreviewKey(value).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return slug || fallback;
+}
+
+function readEditorSectionState() {
+  try {
+    const raw = localStorage.getItem(EDITOR_SECTION_STATE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeEditorSectionState(state) {
+  try {
+    localStorage.setItem(EDITOR_SECTION_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore local storage failures.
+  }
+}
+
+function getEditorSectionOpen(sectionId, fallback = true) {
+  const state = readEditorSectionState();
+  return typeof state?.[sectionId] === "boolean" ? state[sectionId] : fallback;
+}
+
+function setEditorSectionOpen(sectionId, isOpen) {
+  const state = readEditorSectionState();
+  state[sectionId] = Boolean(isOpen);
+  writeEditorSectionState(state);
+}
+
+function flattenSearchTerms(value, target = []) {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      flattenSearchTerms(entry, target);
+    }
+    return target;
+  }
+
+  if (value && typeof value === "object") {
+    flattenSearchTerms(Object.values(value), target);
+    return target;
+  }
+
+  const text = String(value ?? "").trim().toLowerCase();
+  if (!text) {
+    return target;
+  }
+
+  const normalized = text.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  target.push(text);
+  if (normalized && normalized !== text) {
+    target.push(normalized);
+  }
+  return target;
+}
+
+function buildSearchIndex(...values) {
+  return Array.from(new Set(flattenSearchTerms(values))).join(" ");
+}
+
+function matchesSearchIndex(index, query) {
+  const terms = String(query || "")
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!terms.length) {
+    return true;
+  }
+
+  return terms.every((term) => index.includes(term));
+}
+
+function setSectionFilterState(sectionRef, query) {
+  const match = matchesSearchIndex(sectionRef.wrap.dataset.search || "", query);
+  sectionRef.wrap.hidden = !match;
+  sectionRef.wrap.classList.toggle("is-search-open", Boolean(query) && match);
+  return match;
+}
+
+function assignFieldDefaults(target, source, fields) {
+  if (!target || !source) {
+    return;
+  }
+
+  for (const field of fields || []) {
+    const key = typeof field === "string" ? field : field?.key;
+    if (!key) {
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      target[key] = clone(source[key]);
+    }
+  }
+}
+
+function applyCanvasPreset(theme, presetKey) {
+  const canvas = ensureThemeLabCanvasConfig(theme);
+  const preset = THEME_LAB_CANVAS_PRESETS[presetKey] || THEME_LAB_CANVAS_PRESETS.default;
+  Object.assign(canvas, normalizeThemeLabCanvasConfig(preset));
+}
+
+function applyTypographyPreset(theme, presetKey) {
+  const comfyBase = theme?.colors?.comfy_base;
+  if (!comfyBase) {
+    return;
+  }
+
+  const preset = THEME_LAB_TYPOGRAPHY_PRESETS[presetKey] || THEME_LAB_TYPOGRAPHY_PRESETS.default;
+  assignFieldDefaults(comfyBase, preset, COMFY_TYPOGRAPHY_FIELDS);
 }
 
 function previewKeyCandidates(value) {
@@ -851,10 +1080,20 @@ function migrateTheme(themeLike) {
     if (input.name) {
       base.name = String(input.name);
     }
+
+    ensureThemeLabCanvasConfig(base);
+    if (input.theme_lab || input.themeLab || input.canvas) {
+      base.theme_lab.canvas = ensureThemeLabCanvasConfig({
+        theme_lab: input.theme_lab,
+        themeLab: input.themeLab,
+        canvas: input.canvas,
+      });
+    }
   } catch {
     // keep defaults if migration fails
   }
 
+  ensureThemeLabCanvasConfig(base);
   return base;
 }
 
@@ -1512,15 +1751,34 @@ function applyComfyBase(colors) {
       root.style.setProperty(`--comfy-${key}`, value);
     }
   }
+
+  const backgroundImage = String(getSetting("Comfy.Canvas.BackgroundImage", "") || "");
+  if (backgroundImage) {
+    root.style.setProperty("--bg-img", `url('${backgroundImage}')`);
+  } else {
+    root.style.removeProperty("--bg-img");
+  }
 }
 
 function applyNodeSlotColors(slotColors) {
   const palette = slotColors || {};
+  const nodeDefStore = getRuntimeNodeDefStore();
+  const nodeDataTypes = Array.from(nodeDefStore?.nodeDataTypes || []);
+  const emptyTypes = Object.fromEntries(nodeDataTypes.map((type) => [type, ""]));
 
   try {
     const canvasColors = app?.canvas?.default_connection_color_byType;
     if (canvasColors && typeof canvasColors === "object") {
-      Object.assign(canvasColors, palette);
+      Object.assign(canvasColors, emptyTypes, palette);
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const graphCanvasCtor = window.LGraphCanvas || app?.canvas?.constructor;
+    if (graphCanvasCtor?.link_type_colors && typeof graphCanvasCtor.link_type_colors === "object") {
+      Object.assign(graphCanvasCtor.link_type_colors, emptyTypes, palette);
     }
   } catch {
     // ignore
@@ -1529,7 +1787,25 @@ function applyNodeSlotColors(slotColors) {
   try {
     const litegraph = window.LiteGraph;
     if (litegraph?.NODE_SLOT_COLORS && typeof litegraph.NODE_SLOT_COLORS === "object") {
-      Object.assign(litegraph.NODE_SLOT_COLORS, palette);
+      Object.assign(litegraph.NODE_SLOT_COLORS, emptyTypes, palette);
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const bodyStyle = document.body?.style;
+    if (!bodyStyle) {
+      return;
+    }
+    for (const dataType of nodeDataTypes) {
+      const cssVar = `--color-datatype-${dataType}`;
+      const value = palette[dataType];
+      if (value) {
+        bodyStyle.setProperty(cssVar, value);
+      } else {
+        bodyStyle.removeProperty(cssVar);
+      }
     }
   } catch {
     // ignore
@@ -1546,6 +1822,40 @@ function applyLiteGraph(litegraphColors) {
     if (key in litegraph) {
       litegraph[key] = value;
     }
+  }
+
+  try {
+    const canvas = app?.canvas;
+    if (canvas) {
+      canvas.node_title_color = litegraphColors?.NODE_TITLE_COLOR;
+      canvas.default_link_color = litegraphColors?.LINK_COLOR;
+      const backgroundImage = String(getSetting("Comfy.Canvas.BackgroundImage", "") || "");
+      if (backgroundImage) {
+        canvas.clear_background_color = "transparent";
+      } else {
+        canvas.background_image = litegraphColors?.BACKGROUND_IMAGE || "";
+        canvas.clear_background_color = litegraphColors?.CLEAR_BACKGROUND_COLOR || "#222222";
+      }
+      canvas._pattern = undefined;
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const bodyStyle = document.body?.style;
+    if (bodyStyle) {
+      for (const [themeKey, cssVar] of Object.entries(VUE_LITEGRAPH_THEME_PROPERTY_MAP)) {
+        const value = litegraphColors?.[themeKey];
+        if (value) {
+          bodyStyle.setProperty(`--${cssVar}`, value);
+        } else {
+          bodyStyle.removeProperty(`--${cssVar}`);
+        }
+      }
+    }
+  } catch {
+    // ignore
   }
 
   try {
@@ -1629,6 +1939,7 @@ function applyTheme(theme = getActiveTheme()) {
   applyComfyBase(theme.colors?.comfy_base);
   applyNodeSlotColors(theme.colors?.node_slot);
   applyLiteGraph(theme.colors?.litegraph_base);
+  applyThemeLabCanvasConfig(ensureThemeLabCanvasConfig(theme), { app });
   applyExtensionVars(theme.colors?.extensions);
   applyCustomCSS(theme.custom_css);
 }
@@ -1672,31 +1983,170 @@ function buildComfyPaletteFromRecord(record, paletteId = buildComfyPaletteId(rec
   };
 }
 
-function buildPaletteAlias(palette, aliasId) {
-  if (!palette || !aliasId) {
-    return null;
-  }
-  const alias = clone(palette);
-  alias.id = aliasId;
-  return alias;
-}
-
 function addThemeLabPaletteEntries(targetMap, sourceRecord, primaryId) {
   const mainId = primaryId || COMFY_THEME_LAB_ID;
   const mainPalette = buildComfyPaletteFromRecord(sourceRecord, mainId);
   targetMap[mainPalette.id] = mainPalette;
+  return mainPalette;
+}
 
-  for (const compatId of COMFY_THEME_LAB_COMPAT_IDS) {
-    if (compatId === mainPalette.id) {
+function getRuntimePiniaCandidates() {
+  return [
+    getManager()?.store?.$pinia,
+    getManager()?.stores?.$pinia,
+    getManager()?.$pinia,
+    app?.$pinia,
+    globalThis?.pinia,
+    globalThis?.__PINIA__,
+  ];
+}
+
+function getRuntimeColorPaletteStore() {
+  for (const pinia of getRuntimePiniaCandidates()) {
+    const storeMap = pinia?._s;
+    if (storeMap && typeof storeMap.get === "function") {
+      const store = storeMap.get("colorPalette");
+      if (store) {
+        return store;
+      }
+    }
+  }
+  return null;
+}
+
+function getRuntimeNodeDefStore() {
+  for (const pinia of getRuntimePiniaCandidates()) {
+    const storeMap = pinia?._s;
+    if (storeMap && typeof storeMap.get === "function") {
+      const store = storeMap.get("nodeDef");
+      if (store) {
+        return store;
+      }
+    }
+  }
+  return null;
+}
+
+function getRuntimeActivePaletteId() {
+  const store = getRuntimeColorPaletteStore();
+  if (!store) {
+    return "";
+  }
+  return String(store.activePaletteId ?? store.$state?.activePaletteId ?? "");
+}
+
+async function loadThemeLabPaletteInRuntime(paletteId) {
+  const paletteApi = getManager()?.colorPalette;
+  const loadPalette = paletteApi?.loadColorPalette;
+  if (typeof loadPalette !== "function") {
+    return false;
+  }
+
+  try {
+    await Promise.resolve(loadPalette.call(paletteApi, paletteId));
+    return true;
+  } catch (runtimeError) {
+    warn("Theme Lab runtime color palette reload failed", runtimeError);
+    return false;
+  }
+}
+
+async function upsertThemeLabPaletteViaService(palette) {
+  const paletteId = String(palette?.id || "");
+  if (!paletteId) {
+    return false;
+  }
+
+  const paletteApi = getManager()?.colorPalette;
+  const addPalette = paletteApi?.addCustomColorPalette;
+  const deletePalette = paletteApi?.deleteCustomColorPalette;
+  if (typeof addPalette !== "function") {
+    return false;
+  }
+
+  const runtimeStore = getRuntimeColorPaletteStore();
+  const existingPalettes = {
+    ...normalizeCustomPaletteMap(await getComfySettingValue(
+      COMFY_SETTING_CUSTOM_PALETTES,
+      getSetting(COMFY_SETTING_CUSTOM_PALETTES, {}),
+    )),
+    ...normalizeCustomPaletteMap(runtimeStore?.customPalettes),
+  };
+
+  for (const legacyId of [COMFY_THEME_LAB_ID, ...COMFY_THEME_LAB_LEGACY_IDS]) {
+    if (!existingPalettes[legacyId] || typeof deletePalette !== "function") {
       continue;
     }
-    const compatAlias = buildPaletteAlias(mainPalette, compatId);
-    if (compatAlias) {
-      targetMap[compatAlias.id] = compatAlias;
+    try {
+      await Promise.resolve(deletePalette.call(paletteApi, legacyId));
+    } catch {
+      // ignore
     }
   }
 
-  return mainPalette;
+  try {
+    await Promise.resolve(addPalette.call(paletteApi, clone(palette)));
+    return true;
+  } catch (serviceError) {
+    warn("Theme Lab color palette service add failed", serviceError);
+    return false;
+  }
+}
+
+async function activateThemeLabPalette(customPalettes, { includeMain = true } = {}) {
+  if (!includeMain) {
+    return true;
+  }
+
+  const paletteId = COMFY_THEME_LAB_ID;
+  const palette = customPalettes?.[paletteId];
+  if (!palette) {
+    return false;
+  }
+
+  await upsertThemeLabPaletteViaService(palette);
+
+  // Keep the live Pinia store aligned with the palette we just persisted so
+  // Comfy's own loadColorPalette() reads the new colors, not stale startup state.
+  syncRuntimeColorPaletteStore(customPalettes, paletteId);
+
+  const runtimeStore = getRuntimeColorPaletteStore();
+  if (runtimeStore) {
+    try {
+      runtimeStore.customPalettes = clone(customPalettes);
+      runtimeStore.activePaletteId = paletteId;
+    } catch (runtimeError) {
+      warn("Failed to prime runtime color palette store", runtimeError);
+    }
+  }
+
+  const currentPaletteId = String(await getComfySettingValue(
+    COMFY_SETTING_COLOR_PALETTE,
+    getSetting(COMFY_SETTING_COLOR_PALETTE, ""),
+  ) || "");
+
+  if (currentPaletteId === paletteId) {
+    // Force GraphCanvas to re-run its setting watcher even when Theme Lab keeps
+    // reusing the same palette id across edits.
+    await setComfySettingValue(COMFY_SETTING_COLOR_PALETTE, "dark");
+    await new Promise((resolve) => setTimeout(resolve, 32));
+  }
+
+  await setComfySettingValue(COMFY_SETTING_COLOR_PALETTE, paletteId);
+  await new Promise((resolve) => setTimeout(resolve, 16));
+  syncRuntimeColorPaletteStore(customPalettes, paletteId);
+  await loadThemeLabPaletteInRuntime(paletteId);
+
+  const confirmedPaletteId = String(await getComfySettingValue(
+    COMFY_SETTING_COLOR_PALETTE,
+    getSetting(COMFY_SETTING_COLOR_PALETTE, ""),
+  ) || "");
+  const runtimeActivePaletteId = getRuntimeActivePaletteId();
+
+  return (
+    confirmedPaletteId === paletteId
+    && (!runtimeActivePaletteId || runtimeActivePaletteId === paletteId)
+  );
 }
 
 function normalizeCustomPaletteMap(value) {
@@ -1719,7 +2169,7 @@ function pruneLegacyThemeLabPalettes(palettes, activeId) {
   return next;
 }
 
-async function setComfySettingValue(id, value) {
+async function setComfySettingValue(id, value, { allowApiFallback = true } = {}) {
   const settingApi = getManager()?.setting;
   const managerSetter = settingApi?.set;
   if (typeof managerSetter === "function") {
@@ -1729,6 +2179,10 @@ async function setComfySettingValue(id, value) {
     } catch (settingError) {
       warn(`Failed to set ${id} through extension manager`, settingError);
     }
+  }
+
+  if (!allowApiFallback) {
+    return false;
   }
 
   if (typeof api?.storeSetting === "function") {
@@ -1839,7 +2293,10 @@ async function repairMissingThemeLabPalette({ notify = false } = {}) {
     getSetting(COMFY_SETTING_CUSTOM_PALETTES, {}),
   );
   let currentPalettes = normalizeCustomPaletteMap(storedPalettes);
-  const alreadyRepaired = COMFY_THEME_LAB_COMPAT_IDS.every((id) => Boolean(currentPalettes[id]));
+  const hasMainPalette = Boolean(currentPalettes[COMFY_THEME_LAB_ID]);
+  const needsPaletteMigration = String(activePaletteId || "") !== COMFY_THEME_LAB_ID;
+  const hasLegacyPalettes = COMFY_THEME_LAB_LEGACY_IDS.some((id) => Boolean(currentPalettes[id]));
+  const alreadyRepaired = hasMainPalette && !needsPaletteMigration && !hasLegacyPalettes;
   if (alreadyRepaired) {
     return true;
   }
@@ -1852,7 +2309,7 @@ async function repairMissingThemeLabPalette({ notify = false } = {}) {
     syncRuntimeColorPaletteStore(currentPalettes, COMFY_THEME_LAB_ID);
   }
   const activeOk = palettesOk
-    ? await setComfySettingValue(COMFY_SETTING_COLOR_PALETTE, COMFY_THEME_LAB_ID)
+    ? await activateThemeLabPalette(currentPalettes)
     : false;
   const exportOk = palettesOk ? await exportPaletteToComfyThemeFolder(palette) : false;
   if (exportOk) {
@@ -1871,16 +2328,18 @@ async function repairMissingThemeLabPalette({ notify = false } = {}) {
 }
 
 function syncRuntimeColorPaletteStore(customPalettes, activePaletteId) {
-  const piniaCandidates = [
-    getManager()?.store?.$pinia,
-    getManager()?.stores?.$pinia,
-    getManager()?.$pinia,
-    app?.$pinia,
-    globalThis?.pinia,
-    globalThis?.__PINIA__,
-  ];
+  const directStore = getRuntimeColorPaletteStore();
+  if (directStore) {
+    try {
+      directStore.customPalettes = clone(customPalettes);
+      directStore.activePaletteId = activePaletteId;
+      return true;
+    } catch (syncError) {
+      warn("Failed to sync runtime color palette store via direct Pinia store", syncError);
+    }
+  }
 
-  for (const pinia of piniaCandidates) {
+  for (const pinia of getRuntimePiniaCandidates()) {
     const stateRoot = pinia?.state?.value;
     if (!stateRoot || typeof stateRoot !== "object") {
       continue;
@@ -1939,6 +2398,7 @@ function refreshStylingAfterApply(theme, customPalettes, activePaletteId) {
 
   // Best effort sync for Comfy runtime palette store so components update without full page reload.
   syncRuntimeColorPaletteStore(customPalettes, activePaletteId);
+  void loadThemeLabPaletteInRuntime(activePaletteId);
 
   refreshCanvas();
 
@@ -1950,6 +2410,7 @@ function refreshStylingAfterApply(theme, customPalettes, activePaletteId) {
 
   try {
     requestAnimationFrame(() => {
+      void loadThemeLabPaletteInRuntime(activePaletteId);
       applyTheme(theme);
       refreshCanvas();
     });
@@ -1958,6 +2419,7 @@ function refreshStylingAfterApply(theme, customPalettes, activePaletteId) {
   }
 
   setTimeout(() => {
+    void loadThemeLabPaletteInRuntime(activePaletteId);
     applyTheme(theme);
     refreshCanvas();
   }, 120);
@@ -1988,7 +2450,7 @@ async function applyThemeAndPersist(record = getActiveThemeRecord(), { notify = 
     syncRuntimeColorPaletteStore(currentPalettes, COMFY_THEME_LAB_ID);
   }
   const activeOk = palettesOk
-    ? await setComfySettingValue(COMFY_SETTING_COLOR_PALETTE, COMFY_THEME_LAB_ID)
+    ? await activateThemeLabPalette(currentPalettes)
     : false;
   const exportOk = palettesOk ? await exportPaletteToComfyThemeFolder(palette) : false;
   if (exportOk) {
@@ -2006,7 +2468,7 @@ async function applyThemeAndPersist(record = getActiveThemeRecord(), { notify = 
     } else {
       const detail = palettesOk && activeOk
         ? `Theme applied, but writing ${USER_COMFY_THEME_FILE} failed.`
-        : "Theme applied locally, but ComfyUI theme sync failed.";
+        : `Theme applied locally, but ComfyUI theme sync failed (palettes:${palettesOk ? "ok" : "fail"}, activate:${activeOk ? "ok" : "fail"}, export:${exportOk ? "ok" : "fail"}).`;
       showToast({
         severity: "warn",
         summary: "Theme Lab",
@@ -2015,7 +2477,7 @@ async function applyThemeAndPersist(record = getActiveThemeRecord(), { notify = 
     }
   }
 
-  if (success && refresh) {
+  if (refresh) {
     refreshStylingAfterApply(target.data, currentPalettes, palette.id);
   }
 
@@ -2164,6 +2626,7 @@ function colorInput(target, key, onAny) {
 function textInput(target, key, onAny, placeholder = "") {
   const input = document.createElement("input");
   input.type = "text";
+  input.className = "tl-text-input";
   input.placeholder = placeholder;
   input.value = target[key] ?? "";
 
@@ -2175,15 +2638,79 @@ function textInput(target, key, onAny, placeholder = "") {
   return input;
 }
 
-function numberInput(target, key, onAny, step = 1) {
+function numberInput(target, key, onAny, step = 1, min, max) {
   const input = document.createElement("input");
   input.type = "number";
   input.step = String(step);
   input.value = target[key] ?? 0;
+  if (Number.isFinite(min)) {
+    input.min = String(min);
+  }
+  if (Number.isFinite(max)) {
+    input.max = String(max);
+  }
 
   input.addEventListener("change", () => {
     const parsed = Number(input.value);
-    target[key] = Number.isFinite(parsed) ? parsed : 0;
+    let next = Number.isFinite(parsed) ? parsed : 0;
+    if (Number.isFinite(min)) {
+      next = Math.max(min, next);
+    }
+    if (Number.isFinite(max)) {
+      next = Math.min(max, next);
+    }
+    target[key] = next;
+    input.value = String(next);
+    onAny();
+  });
+
+  return input;
+}
+
+function booleanInput(target, key, onAny) {
+  const wrap = document.createElement("label");
+  wrap.className = "tl-toggle-control";
+
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.className = "tl-toggle";
+  input.checked = Boolean(target[key]);
+
+  const text = document.createElement("span");
+  text.textContent = input.checked ? "On" : "Off";
+
+  input.addEventListener("change", () => {
+    target[key] = input.checked;
+    text.textContent = input.checked ? "On" : "Off";
+    onAny();
+  });
+
+  wrap.append(input, text);
+  return wrap;
+}
+
+function selectInput(target, key, onAny, options = []) {
+  const input = document.createElement("select");
+  input.className = "tl-text-input tl-select-input";
+
+  for (const option of options || []) {
+    const optionEl = document.createElement("option");
+    optionEl.value = String(option?.value ?? "");
+    optionEl.textContent = String(option?.label ?? option?.value ?? "");
+    input.appendChild(optionEl);
+  }
+
+  const current = String(target[key] ?? options?.[0]?.value ?? "");
+  input.value = current;
+  if (input.value !== current && options?.length) {
+    input.value = String(options[0].value);
+  }
+  if (input.value) {
+    target[key] = input.value;
+  }
+
+  input.addEventListener("change", () => {
+    target[key] = input.value;
     onAny();
   });
 
@@ -2204,19 +2731,106 @@ function textareaInput(target, key, onAny, placeholder = "") {
   return textarea;
 }
 
-function section(title) {
-  const wrapper = document.createElement("div");
+function section(title, options = {}) {
+  const {
+    id = slugifyThemeName(title, "section"),
+    meta = "",
+    searchTerms = [],
+    defaultOpen = true,
+  } = options;
+
+  const wrapper = document.createElement("section");
   wrapper.className = "tl-section";
+  wrapper.dataset.sectionId = id;
 
-  const heading = document.createElement("h3");
-  heading.textContent = title;
-  wrapper.appendChild(heading);
+  const header = document.createElement("div");
+  header.className = "tl-section-header";
 
-  return wrapper;
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "tl-section-toggle";
+
+  const heading = document.createElement("span");
+  heading.className = "tl-section-heading";
+
+  const titleEl = document.createElement("span");
+  titleEl.className = "tl-section-title";
+  titleEl.textContent = title;
+
+  const metaEl = document.createElement("span");
+  metaEl.className = "tl-section-meta";
+
+  heading.append(titleEl, metaEl);
+
+  const chevron = document.createElement("span");
+  chevron.className = "tl-section-chevron";
+  chevron.textContent = ">";
+
+  toggle.append(heading, chevron);
+
+  const body = document.createElement("div");
+  body.className = "tl-section-body";
+
+  const actions = document.createElement("div");
+  actions.className = "tl-section-actions";
+
+  header.append(toggle, actions);
+  wrapper.append(header, body);
+
+  const sectionRef = {
+    wrap: wrapper,
+    body,
+    actions,
+    setMeta(nextMeta) {
+      const text = String(nextMeta || "").trim();
+      metaEl.textContent = text;
+      metaEl.hidden = !text;
+      wrapper.dataset.search = buildSearchIndex(title, text, wrapper._tlSearchTerms || []);
+    },
+    setSearchTerms(nextTerms) {
+      wrapper._tlSearchTerms = flattenSearchTerms(nextTerms);
+      wrapper.dataset.search = buildSearchIndex(title, metaEl.hidden ? "" : metaEl.textContent, wrapper._tlSearchTerms);
+    },
+    setCollapsed(collapsed, persist = true) {
+      wrapper.classList.toggle("is-collapsed", Boolean(collapsed));
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+      if (persist) {
+        setEditorSectionOpen(id, !collapsed);
+      }
+    },
+    addAction(label, onClick, className = "tl-mini") {
+      const action = document.createElement("button");
+      action.type = "button";
+      action.className = className;
+      action.textContent = label;
+      action.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onClick(event);
+      });
+      actions.appendChild(action);
+      return action;
+    },
+  };
+
+  sectionRef.setMeta(meta);
+  sectionRef.setSearchTerms(searchTerms);
+  sectionRef.setCollapsed(!getEditorSectionOpen(id, defaultOpen), false);
+
+  toggle.addEventListener("click", () => {
+    const isExpanded = toggle.getAttribute("aria-expanded") !== "false";
+    sectionRef.setCollapsed(isExpanded);
+  });
+
+  return sectionRef;
 }
 
 function addColorGrid(body, title, objectRef, keys, onAny) {
-  const sec = section(title);
+  const sec = section(title, {
+    id: slugifyThemeName(title, "colors"),
+    meta: `${keys.length} colors`,
+    searchTerms: keys,
+  });
   const grid = document.createElement("div");
   grid.className = "tl-grid";
 
@@ -2226,24 +2840,33 @@ function addColorGrid(body, title, objectRef, keys, onAny) {
     grid.appendChild(wrap);
   }
 
-  sec.appendChild(grid);
-  body.appendChild(sec);
+  sec.body.appendChild(grid);
+  body.appendChild(sec.wrap);
+  return sec;
 }
 
 function addMixedGrid(body, title, objectRef, spec, onAny) {
-  const sec = section(title);
+  const sec = section(title, {
+    id: slugifyThemeName(title, "section"),
+    meta: `${spec.length} controls`,
+    searchTerms: spec.flatMap((field) => [field.label, field.key, field.options || []]),
+  });
   const grid = document.createElement("div");
   grid.className = "tl-grid";
 
   for (const field of spec) {
-    const { key, type, step, placeholder } = field;
-    const { wrap, right } = row(key);
+    const { key, label, type, step, placeholder, min, max, options } = field;
+    const { wrap, right } = row(label || key);
 
     let input;
     if (type === "color") {
       input = colorInput(objectRef, key, onAny);
     } else if (type === "number") {
-      input = numberInput(objectRef, key, onAny, step ?? 1);
+      input = numberInput(objectRef, key, onAny, step ?? 1, min, max);
+    } else if (type === "boolean") {
+      input = booleanInput(objectRef, key, onAny);
+    } else if (type === "select") {
+      input = selectInput(objectRef, key, onAny, options || []);
     } else {
       input = textInput(objectRef, key, onAny, placeholder ?? "");
     }
@@ -2252,23 +2875,28 @@ function addMixedGrid(body, title, objectRef, spec, onAny) {
     grid.appendChild(wrap);
   }
 
-  sec.appendChild(grid);
-  body.appendChild(sec);
+  sec.body.appendChild(grid);
+  body.appendChild(sec.wrap);
+  return sec;
 }
 
 function buildAdvancedCssSection(body, theme, onAny) {
-  const sec = section("Advanced CSS");
+  const sec = section("Advanced CSS", {
+    id: "advanced-css",
+    meta: `${theme.custom_css.vars?.length || 0} vars`,
+    searchTerms: ["Scope selector", "CSS Variables", "Raw CSS", "custom css"],
+  });
 
   const scope = row("Scope selector");
   scope.right.appendChild(textInput(theme.custom_css, "scope", onAny, ":root"));
-  sec.appendChild(scope.wrap);
+  sec.body.appendChild(scope.wrap);
 
   const varsWrap = document.createElement("div");
   varsWrap.className = "tl-vars";
 
   const varsLabel = document.createElement("div");
   varsLabel.textContent = "CSS Variables";
-  sec.append(varsLabel, varsWrap);
+  sec.body.append(varsLabel, varsWrap);
 
   const controls = document.createElement("div");
   controls.style.display = "flex";
@@ -2294,10 +2922,11 @@ function buildAdvancedCssSection(body, theme, onAny) {
   };
 
   controls.append(addButton, clearButton);
-  sec.appendChild(controls);
+  sec.body.appendChild(controls);
 
   function renderVars() {
     varsWrap.replaceChildren();
+    sec.setMeta(`${theme.custom_css.vars?.length || 0} vars`);
 
     for (const [index, entry] of (theme.custom_css.vars || []).entries()) {
       const rowWrap = document.createElement("div");
@@ -2340,33 +2969,45 @@ function buildAdvancedCssSection(body, theme, onAny) {
 
   const rawLabel = document.createElement("div");
   rawLabel.textContent = "Raw CSS";
-  sec.appendChild(rawLabel);
+  sec.body.appendChild(rawLabel);
 
-  sec.appendChild(textareaInput(theme.custom_css, "raw", onAny, "/* Write any CSS here */"));
+  sec.body.appendChild(textareaInput(theme.custom_css, "raw", onAny, "/* Write any CSS here */"));
 
   const hint = document.createElement("div");
   hint.className = "tl-subtle";
   hint.textContent = "Variables apply to the selected scope. Raw CSS is injected into <style>.";
-  sec.appendChild(hint);
+  sec.body.appendChild(hint);
 
-  body.appendChild(sec);
+  body.appendChild(sec.wrap);
+  return sec;
 }
 
-function addExtensionSections(body, theme, providers, onAny) {
+function addExtensionSections(body, theme, providers, onAny, callbacks = {}) {
   const extensions = theme.colors.extensions || (theme.colors.extensions = {});
   let defaultsApplied = false;
+  const sections = [];
 
   for (const provider of providers) {
     runtime.providerIndex[provider.id] = provider;
+    const providerExtensions = extensions[provider.id] || (extensions[provider.id] = {});
 
     for (const [sectionName, items] of Object.entries(provider.sections || {})) {
-      const sec = section(`Extension - ${provider.title} / ${sectionName}`);
+      const sec = section(`Extension - ${provider.title} / ${sectionName}`, {
+        id: slugifyThemeName(`extension-${provider.id}-${sectionName}`, "extension"),
+        meta: `${(items || []).length} controls`,
+        searchTerms: [
+          provider.id,
+          provider.title,
+          sectionName,
+          ...(items || []).flatMap((item) => [item.key, item.label, item.options || []]),
+        ],
+      });
       const grid = document.createElement("div");
       grid.className = "tl-grid";
 
       for (const item of items || []) {
-        if (extensions[provider.id]?.[item.key] === undefined && item.default !== undefined) {
-          (extensions[provider.id] ||= {})[item.key] = item.default;
+        if (providerExtensions[item.key] === undefined && item.default !== undefined) {
+          providerExtensions[item.key] = item.default;
           defaultsApplied = true;
         }
 
@@ -2374,48 +3015,240 @@ function addExtensionSections(body, theme, providers, onAny) {
         let input;
 
         if (item.type === "color") {
-          input = colorInput(extensions[provider.id], item.key, onAny);
+          input = colorInput(providerExtensions, item.key, onAny);
         } else if (item.type === "number") {
-          input = numberInput(extensions[provider.id], item.key, onAny, item.step ?? 1);
+          input = numberInput(providerExtensions, item.key, onAny, item.step ?? 1, item.min, item.max);
+        } else if (item.type === "boolean") {
+          input = booleanInput(providerExtensions, item.key, onAny);
+        } else if (item.type === "select") {
+          input = selectInput(providerExtensions, item.key, onAny, item.options || []);
         } else {
-          input = textInput(extensions[provider.id], item.key, onAny, item.placeholder ?? "");
+          input = textInput(providerExtensions, item.key, onAny, item.placeholder ?? "");
         }
 
         right.appendChild(input);
         grid.appendChild(wrap);
       }
 
-      sec.appendChild(grid);
-      body.appendChild(sec);
+      sec.addAction("Reset", () => {
+        for (const item of items || []) {
+          if (item.default !== undefined) {
+            providerExtensions[item.key] = clone(item.default);
+          } else {
+            delete providerExtensions[item.key];
+          }
+        }
+        onAny();
+        callbacks.refresh?.();
+      });
+
+      sec.body.appendChild(grid);
+      body.appendChild(sec.wrap);
+      sections.push(sec);
     }
   }
 
   if (defaultsApplied) {
     onAny();
   }
+
+  return sections;
 }
 
-async function buildEditorSections(body, theme, onAny) {
-  const meta = section("Theme Meta");
+function createEditorTools(theme, onAny, sections, callbacks = {}) {
+  const wrap = document.createElement("div");
+  wrap.className = "tl-editor-tools";
+
+  const topRow = document.createElement("div");
+  topRow.className = "tl-editor-tools-row";
+
+  const searchWrap = document.createElement("label");
+  searchWrap.className = "tl-searchbox tl-editor-search";
+
+  const searchLabel = document.createElement("span");
+  searchLabel.className = "tl-searchbox-icon";
+  searchLabel.textContent = "Search";
+
+  const searchInput = document.createElement("input");
+  searchInput.type = "search";
+  searchInput.className = "tl-searchbox-input";
+  searchInput.placeholder = "Filter editor sections, fields, and extension controls";
+  searchInput.autocomplete = "off";
+  searchInput.spellcheck = false;
+
+  searchWrap.append(searchLabel, searchInput);
+
+  const actions = document.createElement("div");
+  actions.className = "tl-editor-actions";
+
+  const expandButton = document.createElement("button");
+  expandButton.className = "tl-mini";
+  expandButton.type = "button";
+  expandButton.textContent = "Expand all";
+
+  const collapseButton = document.createElement("button");
+  collapseButton.className = "tl-mini";
+  collapseButton.type = "button";
+  collapseButton.textContent = "Collapse all";
+
+  actions.append(expandButton, collapseButton);
+  topRow.append(searchWrap, actions);
+
+  const presetRow = document.createElement("div");
+  presetRow.className = "tl-editor-presets";
+
+  const presetLabel = document.createElement("span");
+  presetLabel.className = "tl-editor-tools-label";
+  presetLabel.textContent = "Canvas Presets";
+  presetRow.appendChild(presetLabel);
+
+  for (const [presetKey, label] of [
+    ["compact", "Compact"],
+    ["default", "Default"],
+    ["spacious", "Spacious"],
+    ["presentation", "Presentation"],
+  ]) {
+    const button = document.createElement("button");
+    button.className = "tl-mini";
+    button.type = "button";
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      applyCanvasPreset(theme, presetKey);
+      onAny();
+      if (typeof callbacks.refresh === "function") {
+        callbacks.refresh();
+      } else {
+        refreshFilter();
+      }
+    });
+    presetRow.appendChild(button);
+  }
+
+  const typographyRow = document.createElement("div");
+  typographyRow.className = "tl-editor-presets";
+
+  const typographyLabel = document.createElement("span");
+  typographyLabel.className = "tl-editor-tools-label";
+  typographyLabel.textContent = "UI Density";
+  typographyRow.appendChild(typographyLabel);
+
+  for (const [presetKey, label] of [
+    ["compact", "Compact"],
+    ["default", "Default"],
+    ["comfortable", "Comfortable"],
+    ["presentation", "Presentation"],
+  ]) {
+    const button = document.createElement("button");
+    button.className = "tl-mini";
+    button.type = "button";
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      applyTypographyPreset(theme, presetKey);
+      onAny();
+      if (typeof callbacks.refresh === "function") {
+        callbacks.refresh();
+      } else {
+        refreshFilter();
+      }
+    });
+    typographyRow.appendChild(button);
+  }
+
+  const status = document.createElement("div");
+  status.className = "tl-subtle tl-editor-tools-status";
+
+  const empty = document.createElement("div");
+  empty.className = "tl-empty tl-editor-empty";
+  empty.hidden = true;
+  empty.textContent = "No editor sections match the current filter.";
+
+  function refreshFilter() {
+    const query = String(searchInput.value || "").trim().toLowerCase();
+    let visibleCount = 0;
+
+    for (const sectionRef of sections) {
+      if (setSectionFilterState(sectionRef, query)) {
+        visibleCount += 1;
+      }
+    }
+
+    const totalCount = sections.length;
+    if (query) {
+      status.textContent = `${visibleCount} of ${totalCount} sections match`;
+    } else {
+      status.textContent = `${totalCount} editor sections`;
+    }
+    empty.hidden = !(query && visibleCount === 0);
+  }
+
+  expandButton.addEventListener("click", () => {
+    for (const sectionRef of sections) {
+      sectionRef.setCollapsed(false);
+    }
+    refreshFilter();
+  });
+
+  collapseButton.addEventListener("click", () => {
+    for (const sectionRef of sections) {
+      sectionRef.setCollapsed(true);
+    }
+    refreshFilter();
+  });
+
+  searchInput.addEventListener("input", refreshFilter);
+
+  wrap.append(topRow, presetRow, typographyRow, status, empty);
+  refreshFilter();
+
+  return { wrap, refreshFilter };
+}
+
+async function buildEditorSections(body, theme, onAny, callbacks = {}) {
+  ensureThemeLabCanvasConfig(theme);
+  const sections = [];
+  const tools = createEditorTools(theme, onAny, sections, callbacks);
+  body.appendChild(tools.wrap);
+
+  const meta = section("Theme Meta", {
+    id: "theme-meta",
+    meta: "1 control",
+    searchTerms: ["Theme name", "name"],
+  });
   const metaGrid = document.createElement("div");
   metaGrid.className = "tl-grid";
 
   const nameRow = row("Theme name");
   const nameInput = document.createElement("input");
   nameInput.type = "text";
+  nameInput.className = "tl-text-input";
   nameInput.value = theme.name || "Theme";
   nameInput.placeholder = "Theme name";
-  nameInput.addEventListener("change", () => {
-    theme.name = nameInput.value || "Theme";
-    onAny();
+  const syncThemeName = () => {
+    theme.name = nameInput.value;
+    onAny({ preview: false });
+  };
+  nameInput.addEventListener("input", syncThemeName);
+  nameInput.addEventListener("change", syncThemeName);
+  nameInput.addEventListener("blur", () => {
+    if (!String(nameInput.value || "").trim()) {
+      nameInput.value = "Theme";
+      syncThemeName();
+    }
   });
   nameRow.right.appendChild(nameInput);
 
   metaGrid.append(nameRow.wrap);
-  meta.appendChild(metaGrid);
-  body.appendChild(meta);
+  meta.body.appendChild(metaGrid);
+  body.appendChild(meta.wrap);
+  sections.push(meta);
 
-  addColorGrid(body, "Node Slot Colors", theme.colors.node_slot, Object.keys(theme.colors.node_slot), onAny);
+  const nodeSlotSection = addColorGrid(body, "Node Slot Colors", theme.colors.node_slot, Object.keys(theme.colors.node_slot), onAny);
+  nodeSlotSection.addAction("Reset", () => {
+    assignFieldDefaults(theme.colors.node_slot, TEMPLATE.colors.node_slot, Object.keys(TEMPLATE.colors.node_slot));
+    onAny();
+    callbacks.refresh?.();
+  });
+  sections.push(nodeSlotSection);
 
   const litegraphSpec = [
     { key: "CLEAR_BACKGROUND_COLOR", type: "color" },
@@ -2446,23 +3279,78 @@ async function buildEditorSections(body, theme, onAny) {
     { key: "BADGE_BG_COLOR", type: "color" },
   ];
 
-  addMixedGrid(body, "LiteGraph Canvas", theme.colors.litegraph_base, litegraphSpec, onAny);
+  const litegraphSection = addMixedGrid(body, "LiteGraph Canvas", theme.colors.litegraph_base, litegraphSpec, onAny);
+  litegraphSection.addAction("Reset", () => {
+    assignFieldDefaults(theme.colors.litegraph_base, TEMPLATE.colors.litegraph_base, litegraphSpec);
+    onAny();
+    callbacks.refresh?.();
+  });
+  sections.push(litegraphSection);
 
-  addMixedGrid(body, "Comfy UI Colors", theme.colors.comfy_base, COMFY_CORE_COLOR_FIELDS, onAny);
-  addMixedGrid(body, "Comfy UI Optional Colors", theme.colors.comfy_base, COMFY_OPTIONAL_COLOR_FIELDS, onAny);
-  addMixedGrid(body, "Design System Colors", theme.colors.comfy_base, COMFY_DESIGN_SYSTEM_COLOR_FIELDS, onAny);
-  addMixedGrid(body, "Comfy UI Styling", theme.colors.comfy_base, COMFY_STYLE_FIELDS, onAny);
-  addMixedGrid(body, "Fonts & Layout", theme.colors.comfy_base, COMFY_TYPOGRAPHY_FIELDS, onAny);
-  buildAdvancedCssSection(body, theme, onAny);
+  const canvasGeometrySection = addMixedGrid(body, "Canvas Geometry", theme.theme_lab.canvas, THEME_LAB_CANVAS_FIELDS, onAny);
+  canvasGeometrySection.addAction("Reset", () => {
+    assignFieldDefaults(theme.theme_lab.canvas, THEME_LAB_CANVAS_DEFAULTS, THEME_LAB_CANVAS_FIELDS);
+    onAny();
+    callbacks.refresh?.();
+  });
+  sections.push(canvasGeometrySection);
 
-  const extensionHolder = document.createElement("div");
-  extensionHolder.className = "tl-editor-ext";
-  body.appendChild(extensionHolder);
+  const comfyCoreSection = addMixedGrid(body, "Comfy UI Colors", theme.colors.comfy_base, COMFY_CORE_COLOR_FIELDS, onAny);
+  comfyCoreSection.addAction("Reset", () => {
+    assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_CORE_COLOR_FIELDS);
+    onAny();
+    callbacks.refresh?.();
+  });
+  sections.push(comfyCoreSection);
+
+  const comfyOptionalSection = addMixedGrid(body, "Comfy UI Optional Colors", theme.colors.comfy_base, COMFY_OPTIONAL_COLOR_FIELDS, onAny);
+  comfyOptionalSection.addAction("Reset", () => {
+    assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_OPTIONAL_COLOR_FIELDS);
+    onAny();
+    callbacks.refresh?.();
+  });
+  sections.push(comfyOptionalSection);
+
+  const comfyDesignSection = addMixedGrid(body, "Design System Colors", theme.colors.comfy_base, COMFY_DESIGN_SYSTEM_COLOR_FIELDS, onAny);
+  comfyDesignSection.addAction("Reset", () => {
+    assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_DESIGN_SYSTEM_COLOR_FIELDS);
+    onAny();
+    callbacks.refresh?.();
+  });
+  sections.push(comfyDesignSection);
+
+  const comfyStyleSection = addMixedGrid(body, "Comfy UI Styling", theme.colors.comfy_base, COMFY_STYLE_FIELDS, onAny);
+  comfyStyleSection.addAction("Reset", () => {
+    assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_STYLE_FIELDS);
+    onAny();
+    callbacks.refresh?.();
+  });
+  sections.push(comfyStyleSection);
+
+  const typographySection = addMixedGrid(body, "Fonts & Layout", theme.colors.comfy_base, COMFY_TYPOGRAPHY_FIELDS, onAny);
+  typographySection.addAction("Reset", () => {
+    assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_TYPOGRAPHY_FIELDS);
+    onAny();
+    callbacks.refresh?.();
+  });
+  sections.push(typographySection);
+
+  const advancedCssSection = buildAdvancedCssSection(body, theme, onAny);
+  advancedCssSection.addAction("Reset", () => {
+    theme.custom_css.scope = TEMPLATE.custom_css.scope;
+    theme.custom_css.vars = clone(TEMPLATE.custom_css.vars);
+    theme.custom_css.raw = TEMPLATE.custom_css.raw;
+    onAny();
+    callbacks.refresh?.();
+  });
+  sections.push(advancedCssSection);
 
   const providers = await getProviders();
   if (providers.length) {
-    addExtensionSections(extensionHolder, theme, providers, onAny);
+    sections.push(...addExtensionSections(body, theme, providers, onAny, callbacks));
   }
+
+  tools.refreshFilter();
 }
 
 function createStudioDialog() {

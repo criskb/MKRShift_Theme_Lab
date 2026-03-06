@@ -57,6 +57,8 @@ export class ThemeLabTemplateStudio {
     this.searchInput = null;
     this.countLabel = null;
     this.navButtons = new Map();
+    this.livePreviewFrame = 0;
+    this.livePreviewTheme = null;
 
     this.isOpen = false;
     this.usesExtensionDialog = false;
@@ -143,6 +145,8 @@ export class ThemeLabTemplateStudio {
     if (!hostEl || !this.root) {
       return;
     }
+
+    this.clearQueuedLivePreview();
 
     if (this.root.parentElement === hostEl) {
       hostEl.removeChild(this.root);
@@ -420,6 +424,7 @@ export class ThemeLabTemplateStudio {
       return false;
     }
 
+    this.clearQueuedLivePreview();
     document.removeEventListener("keydown", this.nativeOverlayKeyHandler, true);
     if (this.root?.parentElement === this.nativeOverlayPanel) {
       this.nativeOverlayPanel.removeChild(this.root);
@@ -432,8 +437,33 @@ export class ThemeLabTemplateStudio {
 
   refresh() {
     if (this.isOpen) {
+      this.clearQueuedLivePreview();
       this.renderMain();
     }
+  }
+
+  clearQueuedLivePreview() {
+    if (this.livePreviewFrame) {
+      cancelAnimationFrame(this.livePreviewFrame);
+      this.livePreviewFrame = 0;
+    }
+    this.livePreviewTheme = null;
+  }
+
+  queueLivePreview(theme) {
+    this.livePreviewTheme = theme;
+    if (this.livePreviewFrame) {
+      return;
+    }
+
+    this.livePreviewFrame = requestAnimationFrame(() => {
+      this.livePreviewFrame = 0;
+      const nextTheme = this.livePreviewTheme;
+      this.livePreviewTheme = null;
+      if (nextTheme && this.options.isLivePreviewEnabled()) {
+        this.options.applyTheme(nextTheme);
+      }
+    });
   }
 
   resetChrome() {
@@ -448,6 +478,7 @@ export class ThemeLabTemplateStudio {
       return;
     }
 
+    this.clearQueuedLivePreview();
     this.resetChrome();
     this.main.replaceChildren();
     this.main.classList.toggle("tl-main-about", this.page === "about");
@@ -790,10 +821,11 @@ export class ThemeLabTemplateStudio {
     selectWrap.append(selectLabel, themeSelect);
 
     const applyButton = this.makeButton("Apply", async () => {
+      const active = this.options.getActiveThemeRecord();
       if (typeof this.options.applyThemeAndPersist === "function") {
-        await this.options.applyThemeAndPersist(record);
+        await this.options.applyThemeAndPersist(active);
       } else {
-        this.options.applyTheme(record.data);
+        this.options.applyTheme(active.data);
         this.options.showToast({ severity: "success", summary: "Theme Lab", detail: "Theme applied." });
       }
     });
@@ -896,18 +928,30 @@ export class ThemeLabTemplateStudio {
     const body = document.createElement("div");
     body.className = "tl-body tl-editor-scroll";
 
-    const onAny = () => {
-      const activeRecord = this.options.getActiveThemeRecord();
-      activeRecord.name = String(activeRecord.data.name || activeRecord.name || "Theme");
-      activeRecord.data.name = activeRecord.name;
-      this.options.markRecordUpdated(activeRecord);
-      this.options.scheduleLibraryPersist();
-      if (this.options.isLivePreviewEnabled()) {
-        this.options.applyTheme(activeRecord.data);
+    const syncEditorIdentity = (activeRecord) => {
+      const nextName = String(activeRecord?.name || "Theme");
+      editorTitle.textContent = nextName;
+      const activeOption = Array.from(themeSelect.options).find((option) => option.value === activeRecord?.id);
+      if (activeOption) {
+        activeOption.textContent = nextName;
       }
     };
 
-    void this.options.buildEditorSections(body, record.data, onAny);
+    const onAny = ({ preview = true } = {}) => {
+      const activeRecord = this.options.getActiveThemeRecord();
+      activeRecord.name = String(activeRecord.data.name ?? "").trim() || "Theme";
+      activeRecord.data.name = activeRecord.name;
+      syncEditorIdentity(activeRecord);
+      this.options.markRecordUpdated(activeRecord);
+      this.options.scheduleLibraryPersist();
+      if (preview && this.options.isLivePreviewEnabled()) {
+        this.queueLivePreview(activeRecord.data);
+      }
+    };
+
+    void this.options.buildEditorSections(body, record.data, onAny, {
+      refresh: () => this.renderEditorPage(),
+    });
     this.main.appendChild(body);
   }
 
@@ -940,28 +984,55 @@ export class ThemeLabTemplateStudio {
     );
 
     const p1 = document.createElement("p");
-    p1.textContent = "Theme Lab now follows the same layout contract as the Templates dialog in ComfyUI frontend.";
+    p1.textContent = "Theme Lab is a full-screen theme workspace for ComfyUI. It lets you browse saved looks, edit them in one place, and apply them without leaving the canvas.";
 
     const p2 = document.createElement("p");
-    p2.textContent = "Themes are stored in Comfy user data (themelab.themes.json) with local cache fallback.";
+    p2.textContent = "Each saved theme combines official Comfy palette colors with Theme Lab-specific canvas tuning, preview images, and extension-side styling controls. Your library is stored in Comfy user data with a local cache fallback.";
 
     const p3 = document.createElement("p");
-    p3.textContent = "Use Saved Themes to browse and Theme Editor to customize, import, export, and apply.";
+    p3.textContent = "Use Saved Themes to manage your library, Theme Editor to tune colors and canvas geometry, and Apply to sync the active look back into ComfyUI's runtime theme file.";
 
-    const links = document.createElement("div");
-    links.className = "tl-about-links";
+    const list = document.createElement("ul");
+    list.className = "tl-about-list";
+    for (const item of [
+      "Match UI colors, node slots, widgets, links, reroutes, and canvas spacing in one theme record.",
+      "Store theme previews alongside saved themes so the library is visual instead of text-only.",
+      "Export the active theme to ComfyUI while keeping Theme Lab-only metadata in the extension library.",
+      "Use live preview to iterate quickly, then apply once you want the current theme committed.",
+    ]) {
+      const li = document.createElement("li");
+      li.textContent = item;
+      list.appendChild(li);
+    }
 
-    const docs = document.createElement("a");
-    docs.href = "https://docs.comfy.org/custom-nodes/js/javascript_overview";
-    docs.target = "_blank";
-    docs.rel = "noreferrer";
-    docs.textContent = "ComfyUI JS Extension Docs";
+    const repo = document.createElement("a");
+    repo.className = "tl-about-repo";
+    repo.href = "https://github.com/criskb/MKRShift_Theme_Lab";
+    repo.target = "_blank";
+    repo.rel = "noreferrer";
+    repo.append(icon("icon-[lucide--github]"), document.createTextNode("Open Theme Lab Repository"));
 
-    const frontend = document.createElement("a");
-    frontend.href = "https://github.com/Comfy-Org/ComfyUI_frontend";
-    frontend.target = "_blank";
-    frontend.rel = "noreferrer";
-    frontend.textContent = "ComfyUI Frontend";
+    const meta = document.createElement("div");
+    meta.className = "tl-about-meta";
+    for (const [label, value] of [
+      ["Library", "themelab.themes.json"],
+      ["Previews", "themelab/previews"],
+      ["Comfy Export", "themes/Theme Lab.json"],
+    ]) {
+      const row = document.createElement("div");
+      row.className = "tl-about-meta-row";
+
+      const labelEl = document.createElement("span");
+      labelEl.className = "tl-about-meta-label";
+      labelEl.textContent = label;
+
+      const valueEl = document.createElement("code");
+      valueEl.className = "tl-about-meta-value";
+      valueEl.textContent = value;
+
+      row.append(labelEl, valueEl);
+      meta.appendChild(row);
+    }
 
     const signature = document.createElement("div");
     signature.className = "tl-about-signature";
@@ -979,8 +1050,7 @@ export class ThemeLabTemplateStudio {
       signatureBrand,
     );
 
-    links.append(docs, frontend);
-    card.append(h3, p1, p2, p3, links, signature);
+    card.append(h3, p1, p2, p3, list, repo, meta, signature);
     this.main.appendChild(card);
   }
 }
