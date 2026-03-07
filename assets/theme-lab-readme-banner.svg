@@ -1,0 +1,60 @@
+<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Theme Lab</title>
+  <desc id="desc">Theme Lab banner with THEME in green and LAB in light text.</desc>
+  <defs>
+    <linearGradient id="bg" x1="140" y1="40" x2="1460" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F1115"/>
+      <stop offset="0.52" stop-color="#171A20"/>
+      <stop offset="1" stop-color="#0B0D11"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="370" y1="122" x2="1120" y2="392" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D2FD51" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#D2FD51" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1600" height="520" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="36" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="520" rx="32" fill="url(#bg)"/>
+  <rect x="34" y="34" width="1532" height="452" rx="24" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="1"/>
+  <circle cx="1180" cy="132" r="206" fill="url(#glow)"/>
+
+  <path d="M110 136H240" stroke="#D2FD51" stroke-width="12" stroke-linecap="round"/>
+  <path d="M110 386H330" stroke="#3A4352" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1286 114H1490" stroke="#2B313C" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1242 148H1490" stroke="#D2FD51" stroke-opacity="0.55" stroke-width="8" stroke-linecap="round"/>
+
+  <text x="110" y="250" fill="#D2FD51" font-family="Segoe UI, Arial, sans-serif" font-size="118" font-weight="800" letter-spacing="8">THEME</text>
+  <text x="110" y="352" fill="#F5F7FA" font-family="Segoe UI, Arial, sans-serif" font-size="118" font-weight="800" letter-spacing="8">LAB</text>
+
+  <text x="114" y="416" fill="#A8B0BD" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="500" letter-spacing="1.4">
+    Full-screen theme workspace for ComfyUI
+  </text>
+
+  <g filter="url(#shadow)">
+    <rect x="964" y="104" width="420" height="248" rx="24" fill="#151920"/>
+    <rect x="964.5" y="104.5" width="419" height="247" rx="23.5" stroke="#242A34"/>
+
+    <rect x="990" y="132" width="110" height="18" rx="9" fill="#D2FD51"/>
+    <rect x="1114" y="132" width="88" height="18" rx="9" fill="#313845"/>
+    <rect x="1216" y="132" width="142" height="18" rx="9" fill="#313845"/>
+
+    <rect x="990" y="176" width="122" height="144" rx="20" fill="#11151B"/>
+    <rect x="1128" y="176" width="230" height="62" rx="18" fill="#1B212A"/>
+    <rect x="1128" y="256" width="108" height="64" rx="18" fill="#1B212A"/>
+    <rect x="1250" y="256" width="108" height="64" rx="18" fill="#1B212A"/>
+
+    <rect x="1008" y="196" width="84" height="14" rx="7" fill="#E7EDF7"/>
+    <rect x="1008" y="222" width="66" height="10" rx="5" fill="#97A3B6"/>
+    <rect x="1008" y="244" width="74" height="10" rx="5" fill="#97A3B6"/>
+    <rect x="1008" y="284" width="60" height="10" rx="5" fill="#97A3B6"/>
+
+    <rect x="1148" y="196" width="118" height="12" rx="6" fill="#E7EDF7"/>
+    <rect x="1148" y="220" width="182" height="10" rx="5" fill="#7E8898"/>
+    <rect x="1148" y="272" width="66" height="12" rx="6" fill="#E7EDF7"/>
+    <rect x="1270" y="272" width="66" height="12" rx="6" fill="#E7EDF7"/>
+    <rect x="1148" y="296" width="62" height="10" rx="5" fill="#7E8898"/>
+    <rect x="1270" y="296" width="62" height="10" rx="5" fill="#7E8898"/>
+  </g>
+</svg>
