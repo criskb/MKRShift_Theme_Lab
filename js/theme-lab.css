@@ -1221,6 +1221,63 @@
   font-size: 15px;
 }
 
+.tl-global-sidebar-cards .side-bar-panel {
+  background: transparent !important;
+  padding: 0.85rem;
+  box-sizing: border-box;
+  overflow: visible !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.tl-global-sidebar-cards .side-bar-panel > .sidebar-content-container {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0.42rem 0.48rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--border-color, #4e4e4e) 82%, transparent);
+  background: var(--comfy-menu-bg, var(--bg-color, #17181c));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
+  background-clip: padding-box;
+  overflow: hidden;
+}
+
+.tl-global-sidebar-cards .side-bar-panel > .sidebar-content-container > * {
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.tl-global-sidebar-cards .side-bar-panel .comfy-vue-side-bar-container {
+  background: transparent !important;
+  min-height: 100%;
+  padding: 0.1rem;
+  gap: 0.2rem;
+}
+
+.tl-global-sidebar-cards .side-bar-panel .comfy-vue-side-bar-header {
+  padding: 0.08rem 0.08rem 0;
+}
+
+.tl-global-sidebar-cards .side-bar-panel .comfy-vue-side-bar-body {
+  padding: 0 0.08rem 0.12rem;
+}
+
+.tl-global-sidebar-cards .side-bar-panel .comfy-vue-side-bar-body .p-scrollpanel-content {
+  padding: 0 0.08rem 0.3rem 0;
+  box-sizing: border-box;
+}
+
+.tl-global-sidebar-cards .side-bar-panel :is(.p-tree, .p-treetable, .p-datatable-wrapper) {
+  background: transparent;
+}
+
+.tl-global-sidebar-cards .side-bar-panel :is(.p-inputtext, .p-dropdown, .p-select, .p-multiselect, .p-button) {
+  box-shadow: none;
+}
+
 .tl-bottom {
   padding: 12px;
   display: flex;

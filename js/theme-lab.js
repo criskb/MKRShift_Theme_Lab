@@ -55,6 +55,7 @@ const VUE_LITEGRAPH_THEME_PROPERTY_MAP = {
 const SETTINGS = {
   LIVE_PREVIEW: "themelab.livePreview",
   BOTTOM_PANEL: "themelab.bottomPanelTab",
+  SIDEBAR_PANEL: "themelab.sidebarCardPanel",
   RESET_CONFIRM: "themelab.confirmReset",
   PROVIDER_URLS: "themelab.providerManifestUrls",
 };
@@ -480,6 +481,8 @@ const runtime = {
   studioDialog: null,
   cssLoaded: false,
   vuePromise: null,
+  sidebarHost: null,
+  sidebarCleanup: null,
 };
 
 const log = (...args) => console.log("%c[ThemeLab]", "color:#8AF;font-weight:700", ...args);
@@ -1431,6 +1434,10 @@ function isBottomPanelEnabled() {
   return Boolean(getSetting(SETTINGS.BOTTOM_PANEL, true));
 }
 
+function isGlobalSidebarCardsEnabled() {
+  return Boolean(getSetting(SETTINGS.SIDEBAR_PANEL, false));
+}
+
 function shouldConfirmReset() {
   return Boolean(getSetting(SETTINGS.RESET_CONFIRM, true));
 }
@@ -1450,6 +1457,20 @@ function showToast({ severity = "info", summary = "Theme Lab", detail = "", life
   } else {
     log(message);
   }
+}
+
+function syncGlobalSidebarCardMode() {
+  const enabled = isGlobalSidebarCardsEnabled();
+  document.body?.classList.toggle("tl-global-sidebar-cards", enabled);
+}
+
+function themePreviewGradient(theme) {
+  const comfy = theme?.colors?.comfy_base || {};
+  const bg = comfy["bg-color"] || comfy["base-background"] || "#1f1f24";
+  const panel = comfy["comfy-menu-bg"] || comfy["secondary-background"] || "#32353f";
+  const accentA = comfy["primary-background"] || theme?.colors?.node_slot?.IMAGE || "#64B5F6";
+  const accentB = comfy["accent-primary"] || theme?.colors?.node_slot?.LATENT || "#FF9CF9";
+  return `linear-gradient(135deg, ${bg} 0%, ${panel} 45%, ${accentA} 72%, ${accentB} 100%)`;
 }
 
 async function confirmDialog({ title, message, type = "default" }) {
@@ -4452,7 +4473,33 @@ async function openStudio(page = "themes") {
   await getStudioDialog().open(page);
 }
 
-function renderSidebarLauncher(el) {
+function cleanupSidebarRender() {
+  if (typeof runtime.sidebarCleanup === "function") {
+    try {
+      runtime.sidebarCleanup();
+    } catch {
+      // ignore sidebar cleanup failures
+    }
+  }
+  runtime.sidebarCleanup = null;
+}
+
+function applyThemePreviewBackground(previewEl, record) {
+  const previewUrl = getThemePreviewUrl(record);
+  const fallbackGradient = themePreviewGradient(record?.data);
+
+  previewEl.style.background = fallbackGradient;
+  if (previewUrl) {
+    previewEl.style.backgroundImage = `url("${previewUrl}")`;
+    previewEl.style.backgroundSize = "cover";
+    previewEl.style.backgroundPosition = "center";
+    previewEl.style.backgroundRepeat = "no-repeat";
+  } else {
+    previewEl.style.backgroundImage = "none";
+  }
+}
+
+function renderSidebarLauncher(el, { autoOpen = true } = {}) {
   try {
     el.replaceChildren();
   } catch {
@@ -4491,19 +4538,38 @@ function renderSidebarLauncher(el) {
   el.appendChild(container);
 
   // Open the studio immediately when the sidebar icon/tab is clicked.
-  queueMicrotask(() => {
-    const closed = tryExecuteCommand("Workspace.ToggleSidebarTab.themeLabTab");
-    const open = () => void openStudio("themes");
-    if (closed) {
-      setTimeout(open, 0);
-    } else {
-      open();
-    }
-    setTimeout(() => restoreSidebarLauncherHost(suppressedTargets), 500);
-  });
+  if (autoOpen) {
+    queueMicrotask(() => {
+      const closed = tryExecuteCommand("Workspace.ToggleSidebarTab.themeLabTab");
+      const open = () => void openStudio("themes");
+      if (closed) {
+        setTimeout(open, 0);
+      } else {
+        open();
+      }
+      setTimeout(() => restoreSidebarLauncherHost(suppressedTargets), 500);
+    });
+  } else {
+    setTimeout(() => restoreSidebarLauncherHost(suppressedTargets), 0);
+  }
 
   return () => {
     restoreSidebarLauncherHost(suppressedTargets);
+  };
+}
+
+function renderSidebarTabContent(el, { autoOpen = false } = {}) {
+  cleanupSidebarRender();
+  runtime.sidebarHost = el instanceof HTMLElement ? el : null;
+
+  const cleanup = renderSidebarLauncher(el, { autoOpen });
+  runtime.sidebarCleanup = typeof cleanup === "function" ? cleanup : null;
+
+  return () => {
+    if (runtime.sidebarHost === el) {
+      cleanupSidebarRender();
+      runtime.sidebarHost = null;
+    }
   };
 }
 
@@ -4579,7 +4645,7 @@ function registerSidebarTab() {
       title: "Theme Lab",
       tooltip: "Open Theme Lab Studio",
       type: "custom",
-      render: (el) => renderSidebarLauncher(el),
+      render: (el) => renderSidebarTabContent(el, { autoOpen: true }),
     });
     log("Sidebar launcher registered.");
   } catch (tabError) {
@@ -4667,6 +4733,17 @@ try {
         defaultValue: true,
         category: ["Theme Lab", "UI", "Bottom Panel"],
         tooltip: "Shows Theme Lab quick actions in the bottom panel.",
+      },
+      {
+        id: SETTINGS.SIDEBAR_PANEL,
+        name: "Render side tabs as floating cards",
+        type: "boolean",
+        defaultValue: false,
+        category: ["Theme Lab", "UI", "Sidebar"],
+        tooltip: "Styles the shared ComfyUI side-tab panel so tabs like Model Library open inside a floating card shell instead of a flush drawer.",
+        onChange: () => {
+          syncGlobalSidebarCardMode();
+        },
       },
       {
         id: SETTINGS.RESET_CONFIRM,
@@ -4789,6 +4866,7 @@ try {
     ],
 
     setup() {
+      syncGlobalSidebarCardMode();
       registerSidebarTab();
 
       void ensureLibraryLoaded().then(async () => {
