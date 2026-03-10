@@ -829,13 +829,14 @@ function matchesSearchIndex(index, query) {
   return terms.every((term) => index.includes(term));
 }
 
-function setSectionFilterState(sectionRef, query) {
+function setSectionFilterState(sectionRef, query, { changedOnly = false } = {}) {
   const rows = Array.from(sectionRef.wrap.querySelectorAll("[data-tl-row-search]"));
   const groups = Array.from(sectionRef.wrap.querySelectorAll("[data-tl-extension-group]"));
   const sectionMatch = matchesSearchIndex(sectionRef.wrap.dataset.search || "", query);
+  const sectionChanged = sectionRef.wrap.dataset.tlSectionChanged === "true";
   let visibleRows = 0;
 
-  if (!query || sectionMatch) {
+  if ((!query || sectionMatch) && !changedOnly) {
     for (const rowEl of rows) {
       rowEl.hidden = false;
     }
@@ -845,7 +846,9 @@ function setSectionFilterState(sectionRef, query) {
     visibleRows = rows.length;
   } else {
     for (const rowEl of rows) {
-      const match = matchesSearchIndex(rowEl.dataset.tlRowSearch || "", query);
+      const searchMatch = !query || sectionMatch || matchesSearchIndex(rowEl.dataset.tlRowSearch || "", query);
+      const changedMatch = !changedOnly || rowEl.dataset.tlRowChanged === "true";
+      const match = searchMatch && changedMatch;
       rowEl.hidden = !match;
       if (match) {
         visibleRows += 1;
@@ -858,7 +861,10 @@ function setSectionFilterState(sectionRef, query) {
     }
   }
 
-  const match = !query || sectionMatch || visibleRows > 0;
+  const match = (
+    (!query || sectionMatch || visibleRows > 0)
+    && (!changedOnly || sectionChanged || visibleRows > 0)
+  );
   sectionRef.wrap.hidden = !match;
   sectionRef.wrap.classList.toggle("is-search-open", Boolean(query) && match);
   return {
@@ -3157,6 +3163,11 @@ function row(labelText, searchTerms = []) {
     setSearchTerms(nextTerms) {
       wrap.dataset.tlRowSearch = buildSearchIndex(labelText, nextTerms);
     },
+    setChanged(changed) {
+      const next = Boolean(changed);
+      wrap.dataset.tlRowChanged = String(next);
+      wrap.classList.toggle("is-changed", next);
+    },
   };
 }
 
@@ -3552,6 +3563,38 @@ function textareaInput(target, key, onAny, placeholder = "") {
   return textarea;
 }
 
+function normalizeComparableValue(value, fieldType = "") {
+  if (fieldType === "color") {
+    return parseCssColorValue(value)?.hex || normalizeHexColor(value, { allowAlpha: true, fallback: "#000000" });
+  }
+
+  if (fieldType === "number") {
+    if (value === "" || value === null || value === undefined) {
+      return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  if (fieldType === "boolean") {
+    return Boolean(value);
+  }
+
+  if (Array.isArray(value) || (value && typeof value === "object")) {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  return String(value ?? "");
+}
+
+function isTrackedValueChanged(value, baselineValue, fieldType = "") {
+  return normalizeComparableValue(value, fieldType) !== normalizeComparableValue(baselineValue, fieldType);
+}
+
 function section(title, options = {}) {
   const {
     id = slugifyThemeName(title, "section"),
@@ -3598,19 +3641,38 @@ function section(title, options = {}) {
   header.append(toggle, actions);
   wrapper.append(header, body);
 
+  const updateMetaDisplay = () => {
+    const parts = [];
+    const metaText = String(wrapper._tlBaseMeta || "").trim();
+    const changedCount = Number(wrapper._tlChangedCount || 0);
+    if (metaText) {
+      parts.push(metaText);
+    }
+    if (changedCount > 0) {
+      parts.push(`${changedCount} changed`);
+    }
+    metaEl.textContent = parts.join(" · ");
+    metaEl.hidden = parts.length === 0;
+    wrapper.classList.toggle("is-changed", changedCount > 0);
+    wrapper.dataset.tlSectionChanged = String(changedCount > 0);
+    wrapper.dataset.search = buildSearchIndex(title, parts.join(" "), wrapper._tlSearchTerms || []);
+  };
+
   const sectionRef = {
     wrap: wrapper,
     body,
     actions,
     setMeta(nextMeta) {
-      const text = String(nextMeta || "").trim();
-      metaEl.textContent = text;
-      metaEl.hidden = !text;
-      wrapper.dataset.search = buildSearchIndex(title, text, wrapper._tlSearchTerms || []);
+      wrapper._tlBaseMeta = String(nextMeta || "").trim();
+      updateMetaDisplay();
     },
     setSearchTerms(nextTerms) {
       wrapper._tlSearchTerms = flattenSearchTerms(nextTerms);
-      wrapper.dataset.search = buildSearchIndex(title, metaEl.hidden ? "" : metaEl.textContent, wrapper._tlSearchTerms);
+      updateMetaDisplay();
+    },
+    setChangeCount(count) {
+      wrapper._tlChangedCount = Number(count) || 0;
+      updateMetaDisplay();
     },
     setCollapsed(collapsed, persist = true) {
       wrapper.classList.toggle("is-collapsed", Boolean(collapsed));
@@ -3634,6 +3696,8 @@ function section(title, options = {}) {
     },
   };
 
+  wrapper._tlBaseMeta = "";
+  wrapper._tlChangedCount = 0;
   sectionRef.setMeta(meta);
   sectionRef.setSearchTerms(searchTerms);
   sectionRef.setCollapsed(!getEditorSectionOpen(id, defaultOpen), false);
@@ -3646,7 +3710,12 @@ function section(title, options = {}) {
   return sectionRef;
 }
 
-function addColorGrid(body, title, objectRef, keys, onAny, registerControl = null) {
+function addColorGrid(body, title, objectRef, keys, onAny, options = {}) {
+  const {
+    registerControl = null,
+    registerTrackedRow = null,
+    baselineSource = {},
+  } = options;
   const sec = section(title, {
     id: slugifyThemeName(title, "colors"),
     meta: `${keys.length} colors`,
@@ -3656,10 +3725,16 @@ function addColorGrid(body, title, objectRef, keys, onAny, registerControl = nul
   grid.className = "tl-grid";
 
   for (const key of keys) {
-    const { wrap, right } = row(key, [key, "color"]);
+    const rowRef = row(key, [key, "color"]);
+    const { wrap, right } = rowRef;
     const input = colorInput(objectRef, key, onAny);
     right.appendChild(input);
     registerControl?.(input);
+    registerTrackedRow?.(sec, rowRef, {
+      getValue: () => objectRef?.[key],
+      getBaselineValue: () => baselineSource?.[key],
+      type: "color",
+    });
     grid.appendChild(wrap);
   }
 
@@ -3668,7 +3743,12 @@ function addColorGrid(body, title, objectRef, keys, onAny, registerControl = nul
   return sec;
 }
 
-function addMixedGrid(body, title, objectRef, spec, onAny, registerControl = null) {
+function addMixedGrid(body, title, objectRef, spec, onAny, options = {}) {
+  const {
+    registerControl = null,
+    registerTrackedRow = null,
+    baselineSource = {},
+  } = options;
   const sec = section(title, {
     id: slugifyThemeName(title, "section"),
     meta: `${spec.length} controls`,
@@ -3679,7 +3759,8 @@ function addMixedGrid(body, title, objectRef, spec, onAny, registerControl = nul
 
   for (const field of spec) {
     const { key, label, type, step, placeholder, min, max, options } = field;
-    const { wrap, right } = row(label || key, [key, label, placeholder, options]);
+    const rowRef = row(label || key, [key, label, placeholder, options]);
+    const { wrap, right } = rowRef;
 
     let input;
     if (type === "color") {
@@ -3696,6 +3777,11 @@ function addMixedGrid(body, title, objectRef, spec, onAny, registerControl = nul
 
     right.appendChild(input);
     registerControl?.(input);
+    registerTrackedRow?.(sec, rowRef, {
+      getValue: () => objectRef?.[key],
+      getBaselineValue: () => baselineSource?.[key],
+      type,
+    });
     grid.appendChild(wrap);
   }
 
@@ -3704,7 +3790,12 @@ function addMixedGrid(body, title, objectRef, spec, onAny, registerControl = nul
   return sec;
 }
 
-function buildAdvancedCssSection(body, theme, onAny) {
+function buildAdvancedCssSection(body, theme, onAny, options = {}) {
+  const {
+    registerTrackedRow = null,
+    registerSectionChange = null,
+    baselineCustomCss = {},
+  } = options;
   const sec = section("Advanced CSS", {
     id: "advanced-css",
     meta: `${theme.custom_css.vars?.length || 0} vars`,
@@ -3713,6 +3804,11 @@ function buildAdvancedCssSection(body, theme, onAny) {
 
   const scope = row("Scope selector", ["scope", ":root", "selector"]);
   scope.right.appendChild(textInput(theme.custom_css, "scope", onAny, ":root"));
+  registerTrackedRow?.(sec, scope, {
+    getValue: () => theme.custom_css?.scope,
+    getBaselineValue: () => baselineCustomCss?.scope,
+    type: "text",
+  });
   sec.body.appendChild(scope.wrap);
 
   const varsWrap = document.createElement("div");
@@ -3795,7 +3891,22 @@ function buildAdvancedCssSection(body, theme, onAny) {
   rawLabel.textContent = "Raw CSS";
   sec.body.appendChild(rawLabel);
 
-  sec.body.appendChild(textareaInput(theme.custom_css, "raw", onAny, "/* Write any CSS here */"));
+  const rawInput = textareaInput(theme.custom_css, "raw", onAny, "/* Write any CSS here */");
+  sec.body.appendChild(rawInput);
+  registerTrackedRow?.(sec, {
+    wrap: rawInput,
+    setChanged(changed) {
+      rawInput.classList.toggle("is-changed", Boolean(changed));
+    },
+  }, {
+    getValue: () => theme.custom_css?.raw,
+    getBaselineValue: () => baselineCustomCss?.raw,
+    type: "text",
+  });
+
+  registerSectionChange?.(sec, () => (
+    isTrackedValueChanged(theme.custom_css?.vars || [], baselineCustomCss?.vars || [], "json") ? 1 : 0
+  ));
 
   const hint = document.createElement("div");
   hint.className = "tl-subtle";
@@ -3808,6 +3919,7 @@ function buildAdvancedCssSection(body, theme, onAny) {
 
 function addExtensionSections(body, theme, providers, onAny, callbacks = {}) {
   const extensions = theme.colors.extensions || (theme.colors.extensions = {});
+  const baselineExtensions = callbacks.baselineExtensions || {};
   let defaultsApplied = false;
   const sections = [];
   const onExtensionAny = ({ preview = true } = {}) => onAny({
@@ -3819,6 +3931,7 @@ function addExtensionSections(body, theme, providers, onAny, callbacks = {}) {
   for (const provider of providers) {
     runtime.providerIndex[provider.id] = provider;
     const providerExtensions = extensions[provider.id] || (extensions[provider.id] = {});
+    const baselineProviderExtensions = baselineExtensions[provider.id] || {};
 
     const providerSections = Object.entries(provider.sections || {});
     const totalControls = providerSections.reduce((sum, [, items]) => sum + (items?.length || 0), 0);
@@ -3882,7 +3995,7 @@ function addExtensionSections(body, theme, providers, onAny, callbacks = {}) {
           defaultsApplied = true;
         }
 
-        const { wrap, right } = row(item.label || item.key, [
+        const rowRef = row(item.label || item.key, [
           item.key,
           item.label,
           item.options || [],
@@ -3892,6 +4005,7 @@ function addExtensionSections(body, theme, providers, onAny, callbacks = {}) {
           sectionName,
           provider.title,
         ]);
+        const { wrap, right } = rowRef;
         let input;
 
         if (item.type === "color") {
@@ -3909,6 +4023,15 @@ function addExtensionSections(body, theme, providers, onAny, callbacks = {}) {
         setControlDisabled(input, !extensionStylingEnabled);
         right.appendChild(input);
         callbacks.registerControl?.(input);
+        callbacks.registerTrackedRow?.(sec, rowRef, {
+          getValue: () => providerExtensions?.[item.key],
+          getBaselineValue: () => (
+            baselineProviderExtensions?.[item.key] !== undefined
+              ? baselineProviderExtensions[item.key]
+              : item.default
+          ),
+          type: item.type,
+        });
         grid.appendChild(wrap);
       }
 
@@ -3931,6 +4054,10 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
   const wrap = document.createElement("div");
   wrap.className = "tl-editor-tools";
   ensureThemeLabOptions(theme);
+  const changeState = {
+    changedSections: 0,
+    changedRows: 0,
+  };
 
   const topRow = document.createElement("div");
   topRow.className = "tl-editor-tools-row";
@@ -3992,6 +4119,18 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
 
   jumpWrap.append(jumpLabel, jumpSelect);
   navigationRow.appendChild(jumpWrap);
+
+  const changedOnlyWrap = document.createElement("label");
+  changedOnlyWrap.className = "tl-inline-toggle";
+
+  const changedOnlyInput = document.createElement("input");
+  changedOnlyInput.type = "checkbox";
+
+  const changedOnlyText = document.createElement("span");
+  changedOnlyText.textContent = "Show changed only";
+
+  changedOnlyWrap.append(changedOnlyInput, changedOnlyText);
+  navigationRow.appendChild(changedOnlyWrap);
 
   const canvasButtons = new Map();
   const typographyButtons = new Map();
@@ -4096,7 +4235,11 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
     extensionToggleText.textContent = extensionToggleInput.checked ? "Enabled" : "Disabled";
     onAny({ preview: false, applyExtensionSettings: true });
     callbacks.previewTheme?.(true);
-    callbacks.refresh?.();
+    if (typeof callbacks.syncControls === "function") {
+      callbacks.syncControls();
+    } else {
+      callbacks.refresh?.();
+    }
   });
 
   extensionCluster.append(extensionToggleWrap, extensionInfo, reloadButton);
@@ -4136,12 +4279,13 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
 
   function refreshFilter() {
     const query = String(searchInput.value || "").trim().toLowerCase();
+    const changedOnly = changedOnlyInput.checked;
     let visibleSections = 0;
     let visibleRows = 0;
     let totalRows = 0;
 
     for (const sectionRef of sections) {
-      const result = setSectionFilterState(sectionRef, query);
+      const result = setSectionFilterState(sectionRef, query, { changedOnly });
       totalRows += result.totalRows;
       visibleRows += result.visibleRows;
       if (result.match) {
@@ -4150,12 +4294,20 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
     }
 
     const totalCount = sections.length;
-    if (query) {
-      status.textContent = `${visibleSections} of ${totalCount} sections · ${visibleRows} controls match`;
+    const changedSummary = changeState.changedRows > 0
+      ? ` · ${changeState.changedRows} changed control${changeState.changedRows === 1 ? "" : "s"}`
+      : "";
+    if (changedOnly && !query) {
+      status.textContent = `${visibleSections} changed section${visibleSections === 1 ? "" : "s"} visible${changedSummary}`;
+    } else if (query || changedOnly) {
+      status.textContent = `${visibleSections} of ${totalCount} sections · ${visibleRows} controls visible${changedSummary}`;
     } else {
-      status.textContent = `${totalCount} editor sections · ${totalRows} controls`;
+      status.textContent = `${totalCount} editor sections · ${totalRows} controls${changedSummary}`;
     }
-    empty.hidden = !(query && visibleSections === 0);
+    empty.hidden = visibleSections !== 0;
+    empty.textContent = changedOnly
+      ? "No changed editor sections match the current filter."
+      : "No editor sections match the current filter.";
   }
 
   expandButton.addEventListener("click", () => {
@@ -4179,6 +4331,7 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
   });
 
   searchInput.addEventListener("input", refreshFilter);
+  changedOnlyInput.addEventListener("change", refreshFilter);
   jumpSelect.addEventListener("change", () => {
     const targetId = String(jumpSelect.value || "").trim();
     if (!targetId) {
@@ -4214,30 +4367,109 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
     typographyHint.textContent = THEME_LAB_TYPOGRAPHY_PRESET_DESCRIPTIONS[activeTypographyPreset || "custom"];
   }
 
+  function syncChangedState({ changedSections = 0, changedRows = 0 } = {}) {
+    changeState.changedSections = Number(changedSections) || 0;
+    changeState.changedRows = Number(changedRows) || 0;
+    refreshFilter();
+  }
+
   wrap.append(topRow, navigationRow, presetRow, canvasHint, typographyRow, typographyHint, extensionRow, status, empty);
   syncSectionOptions();
   refreshFilter();
   syncPresetState();
 
-  return { wrap, refreshFilter, syncPresetState, syncSectionOptions };
+  return { wrap, refreshFilter, syncPresetState, syncSectionOptions, syncChangedState };
 }
 
 async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   ensureThemeLabOptions(theme);
+  const baselineTheme = clone(theme);
+  ensureThemeLabOptions(baselineTheme);
+  normalizeThemeExtensionValues(baselineTheme);
   const sections = [];
   const controlSyncers = [];
+  const rowTrackers = [];
+  const sectionChangeTrackers = [];
+  let refreshEditorState = () => {};
+  const handleAny = (options = {}) => {
+    onAny(options);
+    refreshEditorState();
+  };
   const registerControl = (control) => {
     if (typeof control?._tlSync === "function") {
       controlSyncers.push(control._tlSync);
     }
     return control;
   };
+  const registerTrackedRow = (sectionRef, rowRef, { getValue, getBaselineValue, type = "" } = {}) => {
+    if (!sectionRef || !rowRef || typeof getValue !== "function" || typeof getBaselineValue !== "function") {
+      return;
+    }
+    rowTrackers.push({
+      sectionRef,
+      rowRef,
+      getValue,
+      getBaselineValue,
+      type,
+    });
+  };
+  const registerSectionChange = (sectionRef, getChangedCount) => {
+    if (!sectionRef || typeof getChangedCount !== "function") {
+      return;
+    }
+    sectionChangeTrackers.push({
+      sectionRef,
+      getChangedCount,
+    });
+  };
   const toolCallbacks = {
     ...callbacks,
     syncControls: () => {},
   };
-  const tools = createEditorTools(theme, onAny, sections, toolCallbacks);
+  const tools = createEditorTools(theme, handleAny, sections, toolCallbacks);
   body.appendChild(tools.wrap);
+
+  const refreshChangedState = () => {
+    const sectionCounts = new Map(sections.map((sectionRef) => [sectionRef, 0]));
+    let changedRows = 0;
+
+    for (const tracker of rowTrackers) {
+      const changed = isTrackedValueChanged(
+        tracker.getValue(),
+        tracker.getBaselineValue(),
+        tracker.type,
+      );
+      tracker.rowRef.setChanged?.(changed);
+      if (!changed) {
+        continue;
+      }
+      changedRows += 1;
+      sectionCounts.set(tracker.sectionRef, (sectionCounts.get(tracker.sectionRef) || 0) + 1);
+    }
+
+    for (const tracker of sectionChangeTrackers) {
+      const extraCount = Math.max(0, Number(tracker.getChangedCount()) || 0);
+      if (!extraCount) {
+        continue;
+      }
+      changedRows += extraCount;
+      sectionCounts.set(tracker.sectionRef, (sectionCounts.get(tracker.sectionRef) || 0) + extraCount);
+    }
+
+    let changedSections = 0;
+    for (const sectionRef of sections) {
+      const count = sectionCounts.get(sectionRef) || 0;
+      sectionRef.setChangeCount?.(count);
+      if (count > 0) {
+        changedSections += 1;
+      }
+    }
+
+    return {
+      changedRows,
+      changedSections,
+    };
+  };
 
   const syncControls = () => {
     for (const sync of controlSyncers) {
@@ -4249,7 +4481,12 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
     }
     tools.syncPresetState?.();
     tools.syncSectionOptions?.();
-    tools.refreshFilter();
+    const changedState = refreshChangedState();
+    tools.syncChangedState?.(changedState);
+  };
+  refreshEditorState = () => {
+    const changedState = refreshChangedState();
+    tools.syncChangedState?.(changedState);
   };
   toolCallbacks.syncControls = syncControls;
 
@@ -4269,7 +4506,7 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   nameInput.placeholder = "Theme name";
   const syncThemeName = () => {
     theme.name = nameInput.value;
-    onAny({ preview: false });
+    handleAny({ preview: false });
   };
   nameInput.addEventListener("input", syncThemeName);
   nameInput.addEventListener("change", syncThemeName);
@@ -4284,29 +4521,43 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
   };
   nameRow.right.appendChild(nameInput);
   registerControl(nameInput);
+  registerTrackedRow(meta, nameRow, {
+    getValue: () => theme.name,
+    getBaselineValue: () => baselineTheme.name,
+    type: "text",
+  });
 
   const descriptionRow = row("Theme description", ["description", "summary", "saved themes", "meta"]);
   const descriptionInput = textareaInput(
     theme,
     "description",
-    () => onAny({ preview: false }),
+    () => handleAny({ preview: false }),
     "Short description shown in Saved Themes",
   );
   descriptionInput.rows = 3;
   descriptionInput.classList.add("tl-theme-description-input");
   descriptionRow.right.appendChild(descriptionInput);
   registerControl(descriptionInput);
+  registerTrackedRow(meta, descriptionRow, {
+    getValue: () => theme.description,
+    getBaselineValue: () => baselineTheme.description,
+    type: "text",
+  });
 
   metaGrid.append(nameRow.wrap, descriptionRow.wrap);
   meta.body.appendChild(metaGrid);
   body.appendChild(meta.wrap);
   sections.push(meta);
 
-  const nodeSlotSection = addColorGrid(body, "Node Slot Colors", theme.colors.node_slot, Object.keys(theme.colors.node_slot), onAny, registerControl);
+  const nodeSlotSection = addColorGrid(body, "Node Slot Colors", theme.colors.node_slot, Object.keys(theme.colors.node_slot), handleAny, {
+    registerControl,
+    registerTrackedRow,
+    baselineSource: baselineTheme.colors.node_slot,
+  });
   nodeSlotSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.node_slot, TEMPLATE.colors.node_slot, Object.keys(TEMPLATE.colors.node_slot));
-    onAny();
-    callbacks.refresh?.();
+    handleAny();
+    toolCallbacks.syncControls?.();
   });
   sections.push(nodeSlotSection);
 
@@ -4339,85 +4590,118 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
     { key: "BADGE_BG_COLOR", type: "color" },
   ];
 
-  const litegraphSection = addMixedGrid(body, "LiteGraph Canvas", theme.colors.litegraph_base, litegraphSpec, onAny, registerControl);
+  const litegraphSection = addMixedGrid(body, "LiteGraph Canvas", theme.colors.litegraph_base, litegraphSpec, handleAny, {
+    registerControl,
+    registerTrackedRow,
+    baselineSource: baselineTheme.colors.litegraph_base,
+  });
   litegraphSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.litegraph_base, TEMPLATE.colors.litegraph_base, litegraphSpec);
-    onAny();
-    callbacks.refresh?.();
+    handleAny();
+    toolCallbacks.syncControls?.();
   });
   sections.push(litegraphSection);
 
-  const canvasGeometrySection = addMixedGrid(body, "Canvas Geometry", theme.theme_lab.canvas, THEME_LAB_CANVAS_FIELDS, onAny, registerControl);
+  const canvasGeometrySection = addMixedGrid(body, "Canvas Geometry", theme.theme_lab.canvas, THEME_LAB_CANVAS_FIELDS, handleAny, {
+    registerControl,
+    registerTrackedRow,
+    baselineSource: baselineTheme.theme_lab.canvas,
+  });
   canvasGeometrySection.addAction("Reset", () => {
     assignFieldDefaults(theme.theme_lab.canvas, THEME_LAB_CANVAS_DEFAULTS, THEME_LAB_CANVAS_FIELDS);
-    onAny();
-    callbacks.refresh?.();
+    handleAny();
+    toolCallbacks.syncControls?.();
   });
   sections.push(canvasGeometrySection);
 
-  const comfyCoreSection = addMixedGrid(body, "Comfy UI Colors", theme.colors.comfy_base, COMFY_CORE_COLOR_FIELDS, onAny, registerControl);
+  const comfyCoreSection = addMixedGrid(body, "Comfy UI Colors", theme.colors.comfy_base, COMFY_CORE_COLOR_FIELDS, handleAny, {
+    registerControl,
+    registerTrackedRow,
+    baselineSource: baselineTheme.colors.comfy_base,
+  });
   comfyCoreSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_CORE_COLOR_FIELDS);
-    onAny();
-    callbacks.refresh?.();
+    handleAny();
+    toolCallbacks.syncControls?.();
   });
   sections.push(comfyCoreSection);
 
-  const comfyOptionalSection = addMixedGrid(body, "Comfy UI Optional Colors", theme.colors.comfy_base, COMFY_OPTIONAL_COLOR_FIELDS, onAny, registerControl);
+  const comfyOptionalSection = addMixedGrid(body, "Comfy UI Optional Colors", theme.colors.comfy_base, COMFY_OPTIONAL_COLOR_FIELDS, handleAny, {
+    registerControl,
+    registerTrackedRow,
+    baselineSource: baselineTheme.colors.comfy_base,
+  });
   comfyOptionalSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_OPTIONAL_COLOR_FIELDS);
-    onAny();
-    callbacks.refresh?.();
+    handleAny();
+    toolCallbacks.syncControls?.();
   });
   sections.push(comfyOptionalSection);
 
-  const comfyDesignSection = addMixedGrid(body, "Design System Colors", theme.colors.comfy_base, COMFY_DESIGN_SYSTEM_COLOR_FIELDS, onAny, registerControl);
+  const comfyDesignSection = addMixedGrid(body, "Design System Colors", theme.colors.comfy_base, COMFY_DESIGN_SYSTEM_COLOR_FIELDS, handleAny, {
+    registerControl,
+    registerTrackedRow,
+    baselineSource: baselineTheme.colors.comfy_base,
+  });
   comfyDesignSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_DESIGN_SYSTEM_COLOR_FIELDS);
-    onAny();
-    callbacks.refresh?.();
+    handleAny();
+    toolCallbacks.syncControls?.();
   });
   sections.push(comfyDesignSection);
 
-  const comfyStyleSection = addMixedGrid(body, "Comfy UI Styling", theme.colors.comfy_base, COMFY_STYLE_FIELDS, onAny, registerControl);
+  const comfyStyleSection = addMixedGrid(body, "Comfy UI Styling", theme.colors.comfy_base, COMFY_STYLE_FIELDS, handleAny, {
+    registerControl,
+    registerTrackedRow,
+    baselineSource: baselineTheme.colors.comfy_base,
+  });
   comfyStyleSection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_STYLE_FIELDS);
-    onAny();
-    callbacks.refresh?.();
+    handleAny();
+    toolCallbacks.syncControls?.();
   });
   sections.push(comfyStyleSection);
 
-  const typographySection = addMixedGrid(body, "Fonts & Layout", theme.colors.comfy_base, COMFY_TYPOGRAPHY_FIELDS, onAny, registerControl);
+  const typographySection = addMixedGrid(body, "Fonts & Layout", theme.colors.comfy_base, COMFY_TYPOGRAPHY_FIELDS, handleAny, {
+    registerControl,
+    registerTrackedRow,
+    baselineSource: baselineTheme.colors.comfy_base,
+  });
   typographySection.addAction("Reset", () => {
     assignFieldDefaults(theme.colors.comfy_base, TEMPLATE.colors.comfy_base, COMFY_TYPOGRAPHY_FIELDS);
-    onAny();
-    callbacks.refresh?.();
+    handleAny();
+    toolCallbacks.syncControls?.();
   });
   sections.push(typographySection);
 
-  const advancedCssSection = buildAdvancedCssSection(body, theme, onAny);
+  const advancedCssSection = buildAdvancedCssSection(body, theme, handleAny, {
+    registerTrackedRow,
+    registerSectionChange,
+    baselineCustomCss: baselineTheme.custom_css,
+  });
   advancedCssSection.addAction("Reset", () => {
     theme.custom_css.scope = TEMPLATE.custom_css.scope;
     theme.custom_css.vars = clone(TEMPLATE.custom_css.vars);
     theme.custom_css.raw = TEMPLATE.custom_css.raw;
-    onAny();
-    callbacks.refresh?.();
+    handleAny();
+    toolCallbacks.syncControls?.();
   });
   sections.push(advancedCssSection);
 
   const providers = await getProviders();
   if (normalizeThemeExtensionValues(theme)) {
-    onAny({ preview: false });
+    handleAny({ preview: false });
   }
   if (providers.length) {
-    sections.push(...addExtensionSections(body, theme, providers, onAny, {
+    sections.push(...addExtensionSections(body, theme, providers, handleAny, {
       ...callbacks,
       registerControl,
+      registerTrackedRow,
+      baselineExtensions: baselineTheme.colors.extensions,
     }));
   }
 
   syncControls();
-  tools.refreshFilter();
 }
 
 function createStudioDialog() {

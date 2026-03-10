@@ -87,6 +87,29 @@
   word-break: break-word;
 }
 
+.tl-row.is-changed label,
+.tl-row[data-tl-row-changed="true"] label {
+  color: var(--primary-background, #2563eb);
+}
+
+.tl-row.is-changed label::after,
+.tl-row[data-tl-row-changed="true"] label::after {
+  content: "Changed";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.45rem;
+  padding: 0.14rem 0.42rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-background, #2563eb) 18%, transparent);
+  color: var(--primary-background, #2563eb);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 .tl-right {
   display: flex;
   align-items: center;
@@ -226,6 +249,11 @@
 
 .tl-theme-description-input {
   min-height: 4.75rem;
+}
+
+.tl-textarea.is-changed,
+.tl-text-input.is-changed {
+  border-color: color-mix(in srgb, var(--primary-background, #2563eb) 58%, var(--border-color, #4e4e4e));
 }
 
 .tl-vars {
@@ -469,6 +497,10 @@
   overflow: hidden;
 }
 
+.tl-section.is-changed {
+  border-color: color-mix(in srgb, var(--primary-background, #2563eb) 58%, var(--border-color, #4e4e4e));
+}
+
 .tl-section.is-disabled {
   opacity: 0.72;
 }
@@ -534,9 +566,17 @@
   color: var(--fg-color, #fff);
 }
 
+.tl-section.is-changed .tl-section-title {
+  color: var(--primary-background, #2563eb);
+}
+
 .tl-section-meta {
   color: var(--descrip-text, #aaa);
   font-size: 12px;
+}
+
+.tl-section.is-changed .tl-section-meta {
+  color: var(--primary-background, #2563eb);
 }
 
 .tl-section-chevron {
@@ -1221,26 +1261,45 @@
   font-size: 15px;
 }
 
+.tl-global-sidebar-cards {
+  --tl-sidebar-card-gap: 0.95rem;
+  --tl-sidebar-card-inset-y: 0.42rem;
+  --tl-sidebar-card-inset-x: 0.48rem;
+  --tl-sidebar-card-edge-gap: 0.12rem;
+  --tl-sidebar-card-radius: 1rem;
+  --tl-sidebar-card-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
+}
+
+.tl-global-sidebar-cards .splitter-overlay-root.p-splitter,
+.tl-global-sidebar-cards .splitter-overlay-root.p-splitter > .p-splitter-gutter {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 .tl-global-sidebar-cards .side-bar-panel {
   background: transparent !important;
-  padding: 0.85rem;
+  padding: var(--tl-sidebar-card-gap);
   box-sizing: border-box;
   overflow: visible !important;
   border: none !important;
   box-shadow: none !important;
+  display: flex;
+  align-items: stretch;
 }
 
 .tl-global-sidebar-cards .side-bar-panel > .sidebar-content-container {
   width: 100%;
   min-width: 0;
   min-height: 0;
-  height: 100%;
+  height: calc(100% - (var(--tl-sidebar-card-edge-gap) * 2));
+  margin: var(--tl-sidebar-card-edge-gap) 0;
   box-sizing: border-box;
-  padding: 0.42rem 0.48rem;
-  border-radius: 1rem;
+  padding: var(--tl-sidebar-card-inset-y) var(--tl-sidebar-card-inset-x);
+  border-radius: var(--tl-sidebar-card-radius);
   border: 1px solid color-mix(in srgb, var(--border-color, #4e4e4e) 82%, transparent);
   background: var(--comfy-menu-bg, var(--bg-color, #17181c));
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
+  box-shadow: var(--tl-sidebar-card-shadow);
   background-clip: padding-box;
   overflow: hidden;
 }
