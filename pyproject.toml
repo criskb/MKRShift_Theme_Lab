@@ -30,7 +30,7 @@ Documentation = "https://github.com/criskb/MKRShift_Theme_Lab/wiki"
 [tool.comfy]
 PublisherId = "criskb"
 DisplayName = "MKRShift_Theme_Lab"
-Icon = "/assets/icon.svg"
+Icon = "/assets/icon.png"
 includes = [] 
 # "requires-comfyui" = ">=1.0.0"  # ComfyUI version compatibility
 
