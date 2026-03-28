@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mkrshift-theme-lab"
+version = "2.0.0"
+description = "Full-screen theme workspace for ComfyUI with saved themes, live editing, bundled presets, and extension styling discovery."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Cris Bjorndal" },
+]
+dependencies = []
+classifiers = [
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/criskb/MKRShift_Theme_Lab"
+Documentation = "https://github.com/criskb/MKRShift_Theme_Lab#readme"
+"Bug Tracker" = "https://github.com/criskb/MKRShift_Theme_Lab/issues"
+
+[tool.comfy]
+PublisherId = "criskb"
+DisplayName = "Theme Lab"
+Icon = "https://raw.githubusercontent.com/criskb/MKRShift_Theme_Lab/main/assets/icon.svg"
+Banner = "https://raw.githubusercontent.com/criskb/MKRShift_Theme_Lab/main/assets/banner.svg"
+requires-comfyui = ">=0.16.0"

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Theme Lab Icon</title>
+  <desc id="desc">Rounded square icon for Theme Lab with green accent and dark studio card.</desc>
+  <defs>
+    <linearGradient id="bg" x1="32" y1="28" x2="224" y2="228" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F1115"/>
+      <stop offset="1" stop-color="#151A21"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="76" y1="54" x2="164" y2="154" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D2FD51"/>
+      <stop offset="1" stop-color="#A3D83D"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="224" height="224" rx="48" fill="url(#bg)"/>
+  <rect x="32" y="32" width="192" height="192" rx="36" stroke="#242A34"/>
+
+  <path d="M76 72H128" stroke="url(#accent)" stroke-width="12" stroke-linecap="round"/>
+  <rect x="72" y="90" width="112" height="92" rx="24" fill="#11161D" stroke="#2A313D"/>
+  <rect x="88" y="106" width="80" height="16" rx="8" fill="#D2FD51"/>
+  <rect x="88" y="132" width="56" height="12" rx="6" fill="#E7EDF7"/>
+  <rect x="88" y="154" width="70" height="12" rx="6" fill="#8894A8"/>
+  <circle cx="176" cy="176" r="24" fill="#D2FD51"/>
+  <path d="M171 176L175 180L184 171" stroke="#0F1217" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -189,6 +189,24 @@ const THEME_LAB_CANVAS_PRESET_DESCRIPTIONS = Object.freeze({
   custom: "Custom canvas geometry and LiteGraph text sizing.",
 });
 
+const LITEGRAPH_NODE_SHAPE_OPTIONS = Object.freeze([
+  { value: 1, label: "Box" },
+  { value: 2, label: "Round" },
+  { value: 4, label: "Card" },
+]);
+
+const NODE_SHAPE_CANVAS_FIELDS = [
+  { key: "node_shape_profile" },
+  { key: "node_shape_intensity" },
+  { key: "node_slot_style" },
+  { key: "node_corner_radius" },
+  { key: "node_title_height" },
+  { key: "node_slot_height" },
+  { key: "node_widget_height" },
+  { key: "node_header_band_height" },
+  { key: "node_outline_width" },
+];
+
 const TEMPLATE = {
   id: DEFAULT_THEME_ID,
   name: "Theme Lab",
@@ -390,6 +408,614 @@ const COMFY_TYPOGRAPHY_FIELDS = [
   { key: "comfy-img-preview-width", type: "text", placeholder: "384px" },
   { key: "comfy-img-preview-height", type: "text", placeholder: "256px" },
 ];
+
+const NODE_MODE_CANVAS_FIELDS = [
+  { key: "node_shape_profile" },
+  { key: "node_shape_intensity" },
+  { key: "node_title_height" },
+  { key: "node_slot_height" },
+  { key: "node_widget_height" },
+  { key: "node_corner_radius" },
+  { key: "node_surface_style" },
+  { key: "node_slot_style" },
+  { key: "node_shadow_blur" },
+  { key: "node_shadow_offset_y" },
+  { key: "node_shadow_opacity" },
+  { key: "node_inner_stroke_width" },
+  { key: "node_header_band_height" },
+  { key: "node_header_band_opacity" },
+  { key: "connection_width" },
+  { key: "link_render_mode" },
+  { key: "link_marker_shape" },
+  { key: "node_outline_width" },
+  { key: "widget_outline_width" },
+  { key: "group_outline_width" },
+  { key: "reroute_dot_size" },
+  { key: "reroute_slot_size" },
+  { key: "render_connection_borders" },
+  { key: "render_connection_shadows" },
+  { key: "render_connection_arrows" },
+];
+
+const NODE_MODE_LITEGRAPH_FIELDS = [
+  { key: "NODE_TITLE_COLOR" },
+  { key: "NODE_SELECTED_TITLE_COLOR" },
+  { key: "NODE_TEXT_SIZE" },
+  { key: "NODE_TEXT_COLOR" },
+  { key: "NODE_TEXT_HIGHLIGHT_COLOR" },
+  { key: "NODE_SUBTEXT_SIZE" },
+  { key: "NODE_DEFAULT_COLOR" },
+  { key: "NODE_DEFAULT_BGCOLOR" },
+  { key: "NODE_DEFAULT_BOXCOLOR" },
+  { key: "NODE_DEFAULT_SHAPE" },
+  { key: "NODE_BOX_OUTLINE_COLOR" },
+  { key: "DEFAULT_SHADOW_COLOR" },
+  { key: "DEFAULT_GROUP_FONT" },
+  { key: "WIDGET_BGCOLOR" },
+  { key: "WIDGET_OUTLINE_COLOR" },
+  { key: "WIDGET_TEXT_COLOR" },
+  { key: "WIDGET_SECONDARY_TEXT_COLOR" },
+  { key: "LINK_COLOR" },
+  { key: "EVENT_LINK_COLOR" },
+  { key: "CONNECTING_LINK_COLOR" },
+  { key: "BADGE_FG_COLOR" },
+  { key: "BADGE_BG_COLOR" },
+];
+
+const NODE_MODE_COMFY_FIELDS = [
+  { key: "comfy-img-preview-width" },
+  { key: "comfy-img-preview-height" },
+];
+
+const THEME_LAB_NODE_MODE_PRESETS = Object.freeze({
+  default: Object.freeze({
+    canvas: Object.freeze(Object.fromEntries(
+      NODE_MODE_CANVAS_FIELDS.map((field) => [field.key, THEME_LAB_CANVAS_DEFAULTS[field.key]]),
+    )),
+    litegraph_base: Object.freeze(Object.fromEntries(
+      NODE_MODE_LITEGRAPH_FIELDS.map((field) => [field.key, TEMPLATE.colors.litegraph_base[field.key]]),
+    )),
+    comfy_base: Object.freeze(Object.fromEntries(
+      NODE_MODE_COMFY_FIELDS.map((field) => [field.key, TEMPLATE.colors.comfy_base[field.key]]),
+    )),
+  }),
+  soft_cards: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "round",
+      node_shape_intensity: 1.18,
+      node_title_height: 40,
+      node_slot_height: 24,
+      node_widget_height: 27,
+      node_corner_radius: 28,
+      node_surface_style: "soft-card",
+      node_slot_style: "floating",
+      node_shadow_blur: 38,
+      node_shadow_offset_y: 13,
+      node_shadow_opacity: 0.56,
+      node_inner_stroke_width: 0.5,
+      node_header_band_height: 34,
+      node_header_band_opacity: 0.14,
+      connection_width: 3.5,
+      link_render_mode: "spline",
+      link_marker_shape: "circle",
+      node_outline_width: 0.35,
+      widget_outline_width: 1.5,
+      group_outline_width: 1.5,
+      reroute_dot_size: 12.5,
+      reroute_slot_size: 6,
+      render_connection_borders: true,
+      render_connection_shadows: true,
+      render_connection_arrows: false,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TITLE_COLOR: "#EFF3F9",
+      NODE_SELECTED_TITLE_COLOR: "#FFFFFF",
+      NODE_TEXT_SIZE: 15,
+      NODE_TEXT_COLOR: "#D6DEE8",
+      NODE_TEXT_HIGHLIGHT_COLOR: "#FFFFFF",
+      NODE_SUBTEXT_SIZE: 12,
+      NODE_DEFAULT_COLOR: "#1B2028",
+      NODE_DEFAULT_BGCOLOR: "#10151D",
+      NODE_DEFAULT_BOXCOLOR: "#334050",
+      NODE_DEFAULT_SHAPE: 2,
+      NODE_BOX_OUTLINE_COLOR: "#6D809A",
+      DEFAULT_SHADOW_COLOR: "rgba(0,0,0,0.52)",
+      DEFAULT_GROUP_FONT: 28,
+      WIDGET_BGCOLOR: "#0A1018",
+      WIDGET_OUTLINE_COLOR: "#4F627B",
+      WIDGET_TEXT_COLOR: "#E7EDF6",
+      WIDGET_SECONDARY_TEXT_COLOR: "#9EA8B7",
+      LINK_COLOR: "#9AB7A8",
+      EVENT_LINK_COLOR: "#B28C6B",
+      CONNECTING_LINK_COLOR: "#D3F36B",
+      BADGE_FG_COLOR: "#F7FAFF",
+      BADGE_BG_COLOR: "#233044",
+    }),
+    comfy_base: Object.freeze({
+      "comfy-img-preview-width": "448px",
+      "comfy-img-preview-height": "304px",
+    }),
+  }),
+  media_cards: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "card",
+      node_shape_intensity: 1.14,
+      node_title_height: 44,
+      node_slot_height: 24,
+      node_widget_height: 28,
+      node_corner_radius: 24,
+      node_surface_style: "media-card",
+      node_slot_style: "ring",
+      node_shadow_blur: 36,
+      node_shadow_offset_y: 13,
+      node_shadow_opacity: 0.58,
+      node_inner_stroke_width: 1.5,
+      node_header_band_height: 30,
+      node_header_band_opacity: 0.22,
+      connection_width: 4.4,
+      link_render_mode: "spline",
+      link_marker_shape: "circle",
+      node_outline_width: 1.25,
+      widget_outline_width: 1,
+      group_outline_width: 1.75,
+      reroute_dot_size: 13,
+      reroute_slot_size: 6.5,
+      render_connection_borders: true,
+      render_connection_shadows: true,
+      render_connection_arrows: false,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TITLE_COLOR: "#F5F7FA",
+      NODE_SELECTED_TITLE_COLOR: "#FFFFFF",
+      NODE_TEXT_SIZE: 16,
+      NODE_TEXT_COLOR: "#E7ECF4",
+      NODE_TEXT_HIGHLIGHT_COLOR: "#FFFFFF",
+      NODE_SUBTEXT_SIZE: 13,
+      NODE_DEFAULT_COLOR: "#15181D",
+      NODE_DEFAULT_BGCOLOR: "#090C10",
+      NODE_DEFAULT_BOXCOLOR: "#2D4232",
+      NODE_DEFAULT_SHAPE: 4,
+      NODE_BOX_OUTLINE_COLOR: "#6F8D59",
+      DEFAULT_SHADOW_COLOR: "rgba(0,0,0,0.58)",
+      DEFAULT_GROUP_FONT: 30,
+      WIDGET_BGCOLOR: "#0A0D12",
+      WIDGET_OUTLINE_COLOR: "#31493B",
+      WIDGET_TEXT_COLOR: "#F1F5FA",
+      WIDGET_SECONDARY_TEXT_COLOR: "#A8B1BE",
+      LINK_COLOR: "#6E8E62",
+      EVENT_LINK_COLOR: "#847055",
+      CONNECTING_LINK_COLOR: "#B9E07F",
+      BADGE_FG_COLOR: "#F7FAFF",
+      BADGE_BG_COLOR: "#18221A",
+    }),
+    comfy_base: Object.freeze({
+      "comfy-img-preview-width": "560px",
+      "comfy-img-preview-height": "380px",
+    }),
+  }),
+  minimal_wire: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "box",
+      node_shape_intensity: 0.82,
+      node_title_height: 23,
+      node_slot_height: 18,
+      node_widget_height: 18,
+      node_corner_radius: 2,
+      node_surface_style: "minimal-wire",
+      node_slot_style: "minimal",
+      node_shadow_blur: 0,
+      node_shadow_offset_y: 0,
+      node_shadow_opacity: 0,
+      node_inner_stroke_width: 0.75,
+      node_header_band_height: 0,
+      node_header_band_opacity: 0,
+      connection_width: 1.35,
+      link_render_mode: "linear",
+      link_marker_shape: "none",
+      node_outline_width: 0,
+      widget_outline_width: 0.5,
+      group_outline_width: 0.75,
+      reroute_dot_size: 8,
+      reroute_slot_size: 4,
+      render_connection_borders: false,
+      render_connection_shadows: false,
+      render_connection_arrows: false,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TITLE_COLOR: "#B8C0CC",
+      NODE_SELECTED_TITLE_COLOR: "#F7FAFF",
+      NODE_TEXT_SIZE: 12,
+      NODE_TEXT_COLOR: "#A9B2BF",
+      NODE_TEXT_HIGHLIGHT_COLOR: "#FFFFFF",
+      NODE_SUBTEXT_SIZE: 10,
+      NODE_DEFAULT_COLOR: "#23262C",
+      NODE_DEFAULT_BGCOLOR: "#23262C",
+      NODE_DEFAULT_BOXCOLOR: "#4A505C",
+      NODE_DEFAULT_SHAPE: 1,
+      NODE_BOX_OUTLINE_COLOR: "#707888",
+      DEFAULT_SHADOW_COLOR: "rgba(0,0,0,0.18)",
+      DEFAULT_GROUP_FONT: 18,
+      WIDGET_BGCOLOR: "#1D2128",
+      WIDGET_OUTLINE_COLOR: "#2B313D",
+      WIDGET_TEXT_COLOR: "#D4DAE3",
+      WIDGET_SECONDARY_TEXT_COLOR: "#8E98A8",
+      LINK_COLOR: "#7E8794",
+      EVENT_LINK_COLOR: "#8A7969",
+      CONNECTING_LINK_COLOR: "#D2D7E0",
+      BADGE_FG_COLOR: "#EAF0F8",
+      BADGE_BG_COLOR: "#2B313D",
+    }),
+    comfy_base: Object.freeze({
+      "comfy-img-preview-width": "320px",
+      "comfy-img-preview-height": "224px",
+    }),
+  }),
+  glass_panels: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "round",
+      node_shape_intensity: 1.08,
+      node_title_height: 38,
+      node_slot_height: 21,
+      node_widget_height: 25,
+      node_corner_radius: 28,
+      node_surface_style: "glass-panel",
+      node_slot_style: "ring",
+      node_shadow_blur: 32,
+      node_shadow_offset_y: 8,
+      node_shadow_opacity: 0.26,
+      node_inner_stroke_width: 0.7,
+      node_header_band_height: 30,
+      node_header_band_opacity: 0.1,
+      connection_width: 2.75,
+      link_render_mode: "spline",
+      link_marker_shape: "circle",
+      node_outline_width: 0.4,
+      widget_outline_width: 1,
+      group_outline_width: 1.25,
+      reroute_dot_size: 10.5,
+      reroute_slot_size: 5.5,
+      render_connection_borders: false,
+      render_connection_shadows: true,
+      render_connection_arrows: false,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TITLE_COLOR: "rgba(244,251,255,0.92)",
+      NODE_SELECTED_TITLE_COLOR: "#FFFFFF",
+      NODE_TEXT_SIZE: 14,
+      NODE_TEXT_COLOR: "rgba(220,232,245,0.9)",
+      NODE_TEXT_HIGHLIGHT_COLOR: "#FFFFFF",
+      NODE_SUBTEXT_SIZE: 12,
+      NODE_DEFAULT_COLOR: "rgba(16,23,32,0.48)",
+      NODE_DEFAULT_BGCOLOR: "rgba(9,14,20,0.36)",
+      NODE_DEFAULT_BOXCOLOR: "rgba(150,186,214,0.22)",
+      NODE_DEFAULT_SHAPE: 4,
+      NODE_BOX_OUTLINE_COLOR: "rgba(196,227,250,0.48)",
+      DEFAULT_SHADOW_COLOR: "rgba(0,0,0,0.42)",
+      DEFAULT_GROUP_FONT: 26,
+      WIDGET_BGCOLOR: "rgba(7,11,16,0.34)",
+      WIDGET_OUTLINE_COLOR: "rgba(139,177,207,0.26)",
+      WIDGET_TEXT_COLOR: "#EAF5FF",
+      WIDGET_SECONDARY_TEXT_COLOR: "rgba(166,188,208,0.82)",
+      LINK_COLOR: "rgba(122,182,212,0.58)",
+      EVENT_LINK_COLOR: "rgba(184,155,122,0.56)",
+      CONNECTING_LINK_COLOR: "rgba(215,251,255,0.86)",
+      BADGE_FG_COLOR: "#F6FBFF",
+      BADGE_BG_COLOR: "rgba(29,47,63,0.32)",
+    }),
+    comfy_base: Object.freeze({
+      "comfy-img-preview-width": "440px",
+      "comfy-img-preview-height": "300px",
+    }),
+  }),
+  liquid_glass: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "round",
+      node_shape_intensity: 1.18,
+      node_title_height: 40,
+      node_slot_height: 22,
+      node_widget_height: 26,
+      node_corner_radius: 30,
+      node_surface_style: "liquid-glass",
+      node_slot_style: "ring",
+      node_shadow_blur: 38,
+      node_shadow_offset_y: 10,
+      node_shadow_opacity: 0.24,
+      node_inner_stroke_width: 0.8,
+      node_header_band_height: 30,
+      node_header_band_opacity: 0.14,
+      connection_width: 2.9,
+      link_render_mode: "spline",
+      link_marker_shape: "circle",
+      node_outline_width: 0.25,
+      widget_outline_width: 0.9,
+      group_outline_width: 1.1,
+      reroute_dot_size: 10.5,
+      reroute_slot_size: 5.5,
+      render_connection_borders: false,
+      render_connection_shadows: true,
+      render_connection_arrows: false,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TITLE_COLOR: "rgba(255,255,255,0.96)",
+      NODE_SELECTED_TITLE_COLOR: "#FFFFFF",
+      NODE_TEXT_SIZE: 14,
+      NODE_TEXT_COLOR: "rgba(238,247,255,0.92)",
+      NODE_TEXT_HIGHLIGHT_COLOR: "#FFFFFF",
+      NODE_SUBTEXT_SIZE: 12,
+      NODE_DEFAULT_COLOR: "rgba(214,236,255,0.18)",
+      NODE_DEFAULT_BGCOLOR: "rgba(175,216,255,0.12)",
+      NODE_DEFAULT_BOXCOLOR: "rgba(255,255,255,0.42)",
+      NODE_BOX_OUTLINE_COLOR: "rgba(232,247,255,0.88)",
+      DEFAULT_SHADOW_COLOR: "rgba(0,0,0,0.34)",
+      DEFAULT_GROUP_FONT: 27,
+      WIDGET_BGCOLOR: "rgba(255,255,255,0.08)",
+      WIDGET_OUTLINE_COLOR: "rgba(235,247,255,0.34)",
+      WIDGET_TEXT_COLOR: "#F4FBFF",
+      WIDGET_SECONDARY_TEXT_COLOR: "rgba(205,223,239,0.86)",
+      LINK_COLOR: "rgba(198,238,255,0.72)",
+      EVENT_LINK_COLOR: "rgba(255,205,214,0.7)",
+      CONNECTING_LINK_COLOR: "rgba(226,255,255,0.92)",
+      BADGE_FG_COLOR: "#F9FDFF",
+      BADGE_BG_COLOR: "rgba(203,233,255,0.18)",
+    }),
+    comfy_base: Object.freeze({
+      "comfy-img-preview-width": "448px",
+      "comfy-img-preview-height": "304px",
+    }),
+  }),
+  studio_frame: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "notch",
+      node_shape_intensity: 1.16,
+      node_title_height: 36,
+      node_slot_height: 20,
+      node_widget_height: 23,
+      node_corner_radius: 16,
+      node_surface_style: "studio-frame",
+      node_slot_style: "pill",
+      node_shadow_blur: 16,
+      node_shadow_offset_y: 7,
+      node_shadow_opacity: 0.22,
+      node_inner_stroke_width: 1.35,
+      node_header_band_height: 10,
+      node_header_band_opacity: 0.14,
+      connection_width: 2.2,
+      link_render_mode: "straight",
+      link_marker_shape: "arrow",
+      node_outline_width: 1.2,
+      widget_outline_width: 0.9,
+      group_outline_width: 1,
+      reroute_dot_size: 9.5,
+      reroute_slot_size: 5,
+      render_connection_borders: false,
+      render_connection_shadows: false,
+      render_connection_arrows: true,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TITLE_COLOR: "#EEF4FA",
+      NODE_SELECTED_TITLE_COLOR: "#FFFFFF",
+      NODE_TEXT_SIZE: 13,
+      NODE_TEXT_COLOR: "#D7E0EB",
+      NODE_TEXT_HIGHLIGHT_COLOR: "#FFFFFF",
+      NODE_SUBTEXT_SIZE: 11,
+      NODE_DEFAULT_COLOR: "#12161C",
+      NODE_DEFAULT_BGCOLOR: "#0F1217",
+      NODE_DEFAULT_BOXCOLOR: "#314454",
+      NODE_DEFAULT_SHAPE: 4,
+      NODE_BOX_OUTLINE_COLOR: "#8EA9BF",
+      DEFAULT_SHADOW_COLOR: "rgba(0,0,0,0.28)",
+      DEFAULT_GROUP_FONT: 22,
+      WIDGET_BGCOLOR: "#0E1116",
+      WIDGET_OUTLINE_COLOR: "#2C3642",
+      WIDGET_TEXT_COLOR: "#EEF5FC",
+      WIDGET_SECONDARY_TEXT_COLOR: "#AAB8C6",
+      LINK_COLOR: "#8FA3B7",
+      EVENT_LINK_COLOR: "#7C8C9B",
+      CONNECTING_LINK_COLOR: "#D9ECF8",
+      BADGE_FG_COLOR: "#F4FAFF",
+      BADGE_BG_COLOR: "#1E2730",
+    }),
+    comfy_base: Object.freeze({
+      "comfy-img-preview-width": "400px",
+      "comfy-img-preview-height": "272px",
+    }),
+  }),
+  neon_edge: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "box",
+      node_shape_intensity: 0.9,
+      node_title_height: 28,
+      node_slot_height: 18,
+      node_widget_height: 21,
+      node_corner_radius: 4,
+      node_surface_style: "neon-edge",
+      node_slot_style: "minimal",
+      node_shadow_blur: 0,
+      node_shadow_offset_y: 0,
+      node_shadow_opacity: 0,
+      node_inner_stroke_width: 0.75,
+      node_header_band_height: 8,
+      node_header_band_opacity: 0.1,
+      connection_width: 1.8,
+      link_render_mode: "straight",
+      link_marker_shape: "none",
+      node_outline_width: 0.8,
+      widget_outline_width: 0.75,
+      group_outline_width: 0.75,
+      reroute_dot_size: 8.5,
+      reroute_slot_size: 5.5,
+      render_connection_borders: false,
+      render_connection_shadows: false,
+      render_connection_arrows: false,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_TITLE_COLOR: "#D6DEE8",
+      NODE_SELECTED_TITLE_COLOR: "#FFFFFF",
+      NODE_TEXT_SIZE: 12,
+      NODE_TEXT_COLOR: "#C2CBD6",
+      NODE_TEXT_HIGHLIGHT_COLOR: "#F3F7FB",
+      NODE_SUBTEXT_SIZE: 10,
+      NODE_DEFAULT_COLOR: "#181B20",
+      NODE_DEFAULT_BGCOLOR: "#15181C",
+      NODE_DEFAULT_BOXCOLOR: "#59606B",
+      NODE_DEFAULT_SHAPE: 1,
+      NODE_BOX_OUTLINE_COLOR: "#8791A0",
+      DEFAULT_SHADOW_COLOR: "rgba(0,0,0,0.18)",
+      DEFAULT_GROUP_FONT: 20,
+      WIDGET_BGCOLOR: "#14171B",
+      WIDGET_OUTLINE_COLOR: "#262B33",
+      WIDGET_TEXT_COLOR: "#E3E8EE",
+      WIDGET_SECONDARY_TEXT_COLOR: "#8E98A5",
+      LINK_COLOR: "#8D95A2",
+      EVENT_LINK_COLOR: "#86807A",
+      CONNECTING_LINK_COLOR: "#D2D8E0",
+      BADGE_FG_COLOR: "#F3F7FA",
+      BADGE_BG_COLOR: "#232830",
+    }),
+    comfy_base: Object.freeze({
+      "comfy-img-preview-width": "360px",
+      "comfy-img-preview-height": "248px",
+    }),
+  }),
+});
+
+const THEME_LAB_NODE_MODE_DESCRIPTIONS = Object.freeze({
+  default: "Default ComfyUI node styling baseline with Theme Lab defaults.",
+  soft_cards: "Plush rounded cards with a softer edge falloff, floating slot bubbles, and quieter chrome.",
+  media_cards: "Editorial card framing with heavier preview emphasis and stronger stacked depth.",
+  minimal_wire: "Flatter node chrome with cleaner linear links and less visual weight.",
+  glass_panels: "Dark frosted glass cards with restrained rim light and a deeper mood than Liquid Glass.",
+  liquid_glass: "Semi-transparent frosted node surfaces with glossy Apple-style liquid glass treatment.",
+  studio_frame: "Cut-crown frames with a clearer top tab treatment and a more editorial shell.",
+  neon_edge: "Modern mono slab mode with a flatter box silhouette, minimal inset framing, and restrained chrome.",
+  custom: "Custom node styling mix.",
+});
+
+const THEME_LAB_NODE_SHAPE_PRESETS = Object.freeze({
+  box: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "box",
+      node_shape_intensity: 0.82,
+      node_slot_style: "default",
+      node_corner_radius: 0,
+      node_title_height: 27,
+      node_slot_height: 18,
+      node_widget_height: 20,
+      node_header_band_height: 6,
+      node_outline_width: 0.4,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_DEFAULT_SHAPE: 1,
+    }),
+  }),
+  round: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "round",
+      node_shape_intensity: 1,
+      node_slot_style: "default",
+      node_corner_radius: 22,
+      node_title_height: 32,
+      node_slot_height: 20,
+      node_widget_height: 22,
+      node_header_band_height: 10,
+      node_outline_width: 0.4,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_DEFAULT_SHAPE: 2,
+    }),
+  }),
+  card: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "card",
+      node_shape_intensity: 1.06,
+      node_slot_style: "ring",
+      node_corner_radius: 20,
+      node_title_height: 32,
+      node_slot_height: 21,
+      node_widget_height: 22,
+      node_header_band_height: 12,
+      node_outline_width: 0.7,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_DEFAULT_SHAPE: 4,
+    }),
+  }),
+  squircle: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "squircle",
+      node_shape_intensity: 1.22,
+      node_slot_style: "ring",
+      node_corner_radius: 32,
+      node_title_height: 34,
+      node_slot_height: 21,
+      node_widget_height: 24,
+      node_header_band_height: 10,
+      node_outline_width: 0.35,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_DEFAULT_SHAPE: 2,
+    }),
+  }),
+  capsule: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "capsule",
+      node_shape_intensity: 1.3,
+      node_slot_style: "pill",
+      node_corner_radius: 42,
+      node_title_height: 39,
+      node_slot_height: 22,
+      node_widget_height: 25,
+      node_header_band_height: 14,
+      node_outline_width: 0.2,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_DEFAULT_SHAPE: 2,
+    }),
+  }),
+  panel: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "panel",
+      node_shape_intensity: 1.18,
+      node_slot_style: "pill",
+      node_corner_radius: 20,
+      node_title_height: 34,
+      node_slot_height: 20,
+      node_widget_height: 23,
+      node_header_band_height: 10,
+      node_outline_width: 0.9,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_DEFAULT_SHAPE: 4,
+    }),
+  }),
+  notch: Object.freeze({
+    canvas: Object.freeze({
+      node_shape_profile: "notch",
+      node_shape_intensity: 1.14,
+      node_slot_style: "pill",
+      node_corner_radius: 22,
+      node_title_height: 35,
+      node_slot_height: 20,
+      node_widget_height: 23,
+      node_header_band_height: 11,
+      node_outline_width: 0.85,
+    }),
+    litegraph_base: Object.freeze({
+      NODE_DEFAULT_SHAPE: 4,
+    }),
+  }),
+});
+
+const THEME_LAB_NODE_SHAPE_DESCRIPTIONS = Object.freeze({
+  box: "Harder slab silhouette using ComfyUI's built-in box node shape.",
+  round: "Classic rounded silhouette with softer corners and balanced spacing.",
+  card: "Top-card silhouette using ComfyUI's built-in card shape for stronger visual framing.",
+  squircle: "Smoother superellipse silhouette with fuller shoulders and less mechanical corners than stock round nodes.",
+  capsule: "Full-pill profile with a broader crown and a more deliberate capsule read.",
+  panel: "Structured panel profile with clipped top corners and a steadier architectural base.",
+  notch: "Editorial notched-card silhouette with a cleaner crown cut and more refined upper profile.",
+  custom: "Custom node shape mix.",
+});
 
 const THEME_LAB_TYPOGRAPHY_PRESETS = Object.freeze({
   compact: Object.freeze({
@@ -897,6 +1523,37 @@ function applyCanvasPreset(theme, presetKey) {
   assignFieldDefaults(theme?.colors?.litegraph_base, preset.litegraph_base, CANVAS_PRESET_LITEGRAPH_FIELDS);
 }
 
+function applyNodeMode(theme, presetKey) {
+  const canvas = ensureThemeLabCanvasConfig(theme);
+  const litegraphBase = theme?.colors?.litegraph_base;
+  const comfyBase = theme?.colors?.comfy_base;
+  const preset = THEME_LAB_NODE_MODE_PRESETS[presetKey] || THEME_LAB_NODE_MODE_PRESETS.default;
+
+  Object.assign(canvas, normalizeThemeLabCanvasConfig({
+    ...canvas,
+    ...preset.canvas,
+  }));
+  assignFieldDefaults(litegraphBase, preset.litegraph_base, NODE_MODE_LITEGRAPH_FIELDS);
+  assignFieldDefaults(comfyBase, preset.comfy_base, NODE_MODE_COMFY_FIELDS);
+}
+
+function applyNodeShapePreset(theme, presetKey) {
+  const canvas = ensureThemeLabCanvasConfig(theme);
+  const litegraphBase = theme?.colors?.litegraph_base;
+  if (!litegraphBase) {
+    return;
+  }
+
+  const preset = THEME_LAB_NODE_SHAPE_PRESETS[presetKey] || THEME_LAB_NODE_SHAPE_PRESETS.round;
+  if (preset.canvas) {
+    Object.assign(canvas, normalizeThemeLabCanvasConfig({
+      ...canvas,
+      ...preset.canvas,
+    }));
+  }
+  assignFieldDefaults(litegraphBase, preset.litegraph_base, [{ key: "NODE_DEFAULT_SHAPE" }]);
+}
+
 function applyTypographyPreset(theme, presetKey) {
   const comfyBase = theme?.colors?.comfy_base;
   if (!comfyBase) {
@@ -919,6 +1576,38 @@ function resolveCanvasPresetKey(theme) {
     if (
       matchesPresetValues(canvas, preset.canvas, THEME_LAB_CANVAS_FIELDS)
       && matchesPresetValues(theme?.colors?.litegraph_base || {}, preset.litegraph_base, CANVAS_PRESET_LITEGRAPH_FIELDS)
+    ) {
+      return presetKey;
+    }
+  }
+  return "";
+}
+
+function resolveNodeModeKey(theme) {
+  const canvas = normalizeThemeLabCanvasConfig(theme?.theme_lab?.canvas || {});
+  const litegraphBase = theme?.colors?.litegraph_base || {};
+  const comfyBase = theme?.colors?.comfy_base || {};
+
+  for (const [presetKey, preset] of Object.entries(THEME_LAB_NODE_MODE_PRESETS)) {
+    if (
+      matchesPresetValues(canvas, preset.canvas, NODE_MODE_CANVAS_FIELDS)
+      && matchesPresetValues(litegraphBase, preset.litegraph_base, NODE_MODE_LITEGRAPH_FIELDS)
+      && matchesPresetValues(comfyBase, preset.comfy_base, NODE_MODE_COMFY_FIELDS)
+    ) {
+      return presetKey;
+    }
+  }
+
+  return "";
+}
+
+function resolveNodeShapePresetKey(theme) {
+  const canvas = normalizeThemeLabCanvasConfig(theme?.theme_lab?.canvas || {});
+  const litegraphBase = theme?.colors?.litegraph_base || {};
+  for (const [presetKey, preset] of Object.entries(THEME_LAB_NODE_SHAPE_PRESETS)) {
+    if (
+      matchesPresetValues(canvas, preset.canvas || {}, NODE_SHAPE_CANVAS_FIELDS)
+      && matchesPresetValues(litegraphBase, preset.litegraph_base, [{ key: "NODE_DEFAULT_SHAPE" }])
     ) {
       return presetKey;
     }
@@ -3507,6 +4196,22 @@ function booleanInput(target, key, onAny) {
   return wrap;
 }
 
+function coerceSelectValue(value, options = []) {
+  const raw = String(value ?? "");
+  const match = (options || []).find((option) => String(option?.value ?? "") === raw);
+  if (!match) {
+    return raw;
+  }
+  if (typeof match.value === "number") {
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : match.value;
+  }
+  if (typeof match.value === "boolean") {
+    return raw === "true";
+  }
+  return raw;
+}
+
 function selectInput(target, key, onAny, options = []) {
   const input = document.createElement("select");
   input.className = "tl-text-input tl-select-input";
@@ -3524,11 +4229,11 @@ function selectInput(target, key, onAny, options = []) {
     input.value = String(options[0].value);
   }
   if (input.value) {
-    target[key] = input.value;
+    target[key] = coerceSelectValue(input.value, options);
   }
 
   input.addEventListener("change", () => {
-    target[key] = input.value;
+    target[key] = coerceSelectValue(input.value, options);
     onAny();
   });
 
@@ -3539,7 +4244,7 @@ function selectInput(target, key, onAny, options = []) {
       input.value = String(options[0].value);
     }
     if (input.value) {
-      target[key] = input.value;
+      target[key] = coerceSelectValue(input.value, options);
     }
   };
   return input;
@@ -4133,6 +4838,8 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
   navigationRow.appendChild(changedOnlyWrap);
 
   const canvasButtons = new Map();
+  const nodeShapeButtons = new Map();
+  const nodeModeButtons = new Map();
   const typographyButtons = new Map();
   const extensionToggleWrap = document.createElement("label");
   const extensionToggleInput = document.createElement("input");
@@ -4198,6 +4905,37 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
     typographyButtons,
   );
 
+  const nodeModeRow = buildPresetRow(
+    "Node Modes",
+    [
+      ["default", "Default"],
+      ["soft_cards", "Soft Cards"],
+      ["media_cards", "Media Cards"],
+      ["minimal_wire", "Minimal Wire"],
+      ["glass_panels", "Glass Panels"],
+      ["liquid_glass", "Liquid Glass"],
+      ["studio_frame", "Floating Tabs"],
+      ["neon_edge", "Mono Slab"],
+    ],
+    (presetKey) => applyNodeMode(theme, presetKey),
+    nodeModeButtons,
+  );
+
+  const nodeShapeRow = buildPresetRow(
+    "Node Shapes",
+    [
+      ["box", "Box"],
+      ["round", "Round"],
+      ["card", "Card"],
+      ["squircle", "Squircle"],
+      ["capsule", "Capsule"],
+      ["panel", "Panel"],
+      ["notch", "Notched"],
+    ],
+    (presetKey) => applyNodeShapePreset(theme, presetKey),
+    nodeShapeButtons,
+  );
+
   const extensionRow = document.createElement("div");
   extensionRow.className = "tl-editor-presets tl-extension-tools-row";
 
@@ -4250,6 +4988,12 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
 
   const canvasHint = document.createElement("div");
   canvasHint.className = "tl-editor-helpline";
+
+  const nodeShapeHint = document.createElement("div");
+  nodeShapeHint.className = "tl-editor-helpline";
+
+  const nodeModeHint = document.createElement("div");
+  nodeModeHint.className = "tl-editor-helpline";
 
   const typographyHint = document.createElement("div");
   typographyHint.className = "tl-editor-helpline";
@@ -4350,10 +5094,20 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
 
   function syncPresetState() {
     const activeCanvasPreset = resolveCanvasPresetKey(theme);
+    const activeNodeShape = resolveNodeShapePresetKey(theme);
+    const activeNodeMode = resolveNodeModeKey(theme);
     const activeTypographyPreset = resolveTypographyPresetKey(theme);
 
     for (const [presetKey, button] of canvasButtons.entries()) {
       button.classList.toggle("is-active", presetKey === activeCanvasPreset);
+    }
+
+    for (const [presetKey, button] of nodeShapeButtons.entries()) {
+      button.classList.toggle("is-active", presetKey === activeNodeShape);
+    }
+
+    for (const [presetKey, button] of nodeModeButtons.entries()) {
+      button.classList.toggle("is-active", presetKey === activeNodeMode);
     }
 
     for (const [presetKey, button] of typographyButtons.entries()) {
@@ -4364,6 +5118,8 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
     extensionToggleText.textContent = extensionToggleInput.checked ? "Enabled" : "Disabled";
 
     canvasHint.textContent = THEME_LAB_CANVAS_PRESET_DESCRIPTIONS[activeCanvasPreset || "custom"];
+    nodeShapeHint.textContent = THEME_LAB_NODE_SHAPE_DESCRIPTIONS[activeNodeShape || "custom"];
+    nodeModeHint.textContent = THEME_LAB_NODE_MODE_DESCRIPTIONS[activeNodeMode || "custom"];
     typographyHint.textContent = THEME_LAB_TYPOGRAPHY_PRESET_DESCRIPTIONS[activeTypographyPreset || "custom"];
   }
 
@@ -4373,7 +5129,21 @@ function createEditorTools(theme, onAny, sections, callbacks = {}) {
     refreshFilter();
   }
 
-  wrap.append(topRow, navigationRow, presetRow, canvasHint, typographyRow, typographyHint, extensionRow, status, empty);
+  wrap.append(
+    topRow,
+    navigationRow,
+    presetRow,
+    canvasHint,
+    nodeShapeRow,
+    nodeShapeHint,
+    nodeModeRow,
+    nodeModeHint,
+    typographyRow,
+    typographyHint,
+    extensionRow,
+    status,
+    empty,
+  );
   syncSectionOptions();
   refreshFilter();
   syncPresetState();
@@ -4572,7 +5342,7 @@ async function buildEditorSections(body, theme, onAny, callbacks = {}) {
     { key: "NODE_DEFAULT_COLOR", type: "color" },
     { key: "NODE_DEFAULT_BGCOLOR", type: "color" },
     { key: "NODE_DEFAULT_BOXCOLOR", type: "color" },
-    { key: "NODE_DEFAULT_SHAPE", type: "number", step: 1 },
+    { key: "NODE_DEFAULT_SHAPE", label: "Node Base Shape", type: "select", options: LITEGRAPH_NODE_SHAPE_OPTIONS },
     { key: "NODE_BOX_OUTLINE_COLOR", type: "color" },
     { key: "NODE_BYPASS_BGCOLOR", type: "color" },
     { key: "NODE_ERROR_COLOUR", type: "color" },
