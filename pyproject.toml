@@ -1,7 +1,7 @@
 [project]
 name = "mkrshift_theme_lab"
 description = ""
-version = "1.0.2"
+version = "1.0.4"
 license = {file = "LICENSE"} 
 # classifiers = [
 #     # For OS-independent nodes (works on all operating systems)
@@ -30,7 +30,7 @@ Documentation = "https://github.com/criskb/MKRShift_Theme_Lab/wiki"
 [tool.comfy]
 PublisherId = "criskb"
 DisplayName = "MKRShift_Theme_Lab"
-Icon = "icon.png"
+Icon = "https://raw.githubusercontent.com/criskb/MKRShift_Theme_Lab/refs/heads/main/icon.png"
 includes = [] 
 # "requires-comfyui" = ">=1.0.0"  # ComfyUI version compatibility
 
