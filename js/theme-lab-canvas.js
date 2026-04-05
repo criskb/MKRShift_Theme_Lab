@@ -62,6 +62,7 @@ export const THEME_LAB_CANVAS_FIELDS = [
       { value: "default", label: "Default" },
       { value: "soft-card", label: "Soft Card" },
       { value: "media-card", label: "Media Card" },
+      { value: "minimal-card", label: "Minimal" },
       { value: "minimal-wire", label: "Minimal Wire" },
       { value: "glass-panel", label: "Glass Panel" },
       { value: "liquid-glass", label: "Liquid Glass" },
@@ -249,7 +250,13 @@ function resolveNodeSlotStyle(config = runtime.active) {
   if (surfaceStyle === "soft-card") {
     return "floating";
   }
-  if (surfaceStyle === "media-card" || surfaceStyle === "glass-panel" || surfaceStyle === "liquid-glass") {
+  if (surfaceStyle === "media-card") {
+    return "floating";
+  }
+  if (surfaceStyle === "minimal-card") {
+    return "ring";
+  }
+  if (surfaceStyle === "glass-panel" || surfaceStyle === "liquid-glass") {
     return "ring";
   }
   if (surfaceStyle === "studio-frame") {
@@ -411,6 +418,9 @@ function buildVueNodeLayoutVars(profile, surfaceStyle, shapeIntensity = 1, slotS
     case "card":
       Object.assign(vars, {
         "--tl-vue-node-shell-radius": "var(--tl-node-radius-soft-local)",
+        "--tl-vue-node-root-pad-top": "0.04rem",
+        "--tl-vue-node-root-pad-x": "0.04rem",
+        "--tl-vue-node-root-pad-bottom": "0.08rem",
         "--tl-vue-node-header-radius": "var(--tl-node-radius-soft-local) 0 0 0",
         "--tl-vue-node-body-radius": "0 0 var(--tl-node-radius-soft-local) 0",
         "--tl-vue-node-footer-radius": "0 0 var(--tl-node-radius-soft-local) 0",
@@ -433,106 +443,120 @@ function buildVueNodeLayoutVars(profile, surfaceStyle, shapeIntensity = 1, slotS
     case "squircle":
       Object.assign(vars, {
         "--tl-vue-node-shell-radius": "var(--tl-node-radius-soft-local)",
-        "--tl-vue-node-root-pad-top": "0.08rem",
+        "--tl-vue-node-root-pad-top": "0.06rem",
         "--tl-vue-node-root-pad-x": "0.08rem",
         "--tl-vue-node-root-pad-bottom": "0.12rem",
-        "--tl-vue-node-header-inset-left": "0.18rem",
-        "--tl-vue-node-header-inset-right": "0.18rem",
-        "--tl-vue-node-body-inset-left": "0.18rem",
-        "--tl-vue-node-body-inset-right": "0.18rem",
-        "--tl-vue-node-footer-inset-left": "0.18rem",
-        "--tl-vue-node-footer-inset-right": "0.18rem",
-        "--tl-vue-node-header-pad-left": "0.82rem",
-        "--tl-vue-node-header-pad-right": "0.82rem",
-        "--tl-vue-node-body-pad-left": "0.44rem",
-        "--tl-vue-node-body-pad-right": "0.44rem",
-        "--tl-vue-node-footer-pad-left": "0.44rem",
-        "--tl-vue-node-footer-pad-right": "0.44rem",
-        "--tl-vue-node-widget-row-radius": "18px",
-        "--tl-vue-node-shell-accent-opacity": String(clamp(0.45 + intensity * 0.22, 0, 1)),
+        "--tl-vue-node-header-inset-left": "0.14rem",
+        "--tl-vue-node-header-inset-right": "0.14rem",
+        "--tl-vue-node-body-inset-left": "0.14rem",
+        "--tl-vue-node-body-inset-right": "0.14rem",
+        "--tl-vue-node-footer-inset-left": "0.14rem",
+        "--tl-vue-node-footer-inset-right": "0.14rem",
+        "--tl-vue-node-header-pad-left": "0.8rem",
+        "--tl-vue-node-header-pad-right": "0.8rem",
+        "--tl-vue-node-body-pad-left": "0.42rem",
+        "--tl-vue-node-body-pad-right": "0.42rem",
+        "--tl-vue-node-footer-pad-left": "0.42rem",
+        "--tl-vue-node-footer-pad-right": "0.42rem",
+        "--tl-vue-node-header-radius": "calc(var(--tl-vue-node-shell-radius) - 4px)",
+        "--tl-vue-node-body-radius": "calc(var(--tl-vue-node-shell-radius) - 4px)",
+        "--tl-vue-node-footer-radius": "calc(var(--tl-vue-node-shell-radius) - 4px)",
+        "--tl-vue-node-widget-row-radius": "16px",
+        "--tl-vue-node-shell-accent-opacity": String(clamp(0.24 + intensity * 0.14, 0, 1)),
         "--tl-vue-node-widget-columns": "min-content minmax(86px, min-content) minmax(134px, 1fr)",
       });
       break;
     case "capsule":
       Object.assign(vars, {
         "--tl-vue-node-shell-radius": "var(--tl-node-radius-capsule-local)",
-        "--tl-vue-node-root-pad-x": "0.2rem",
+        "--tl-vue-node-root-pad-top": "0.06rem",
+        "--tl-vue-node-root-pad-x": "0.18rem",
         "--tl-vue-node-root-pad-bottom": "0.18rem",
-        "--tl-vue-node-header-inset-left": "0.55rem",
-        "--tl-vue-node-header-inset-right": "0.55rem",
-        "--tl-vue-node-body-inset-left": "0.55rem",
-        "--tl-vue-node-body-inset-right": "0.55rem",
-        "--tl-vue-node-footer-inset-left": "0.55rem",
-        "--tl-vue-node-footer-inset-right": "0.55rem",
-        "--tl-vue-node-header-pad-left": "1rem",
-        "--tl-vue-node-header-pad-right": "1rem",
-        "--tl-vue-node-body-pad-left": "0.56rem",
-        "--tl-vue-node-body-pad-right": "0.56rem",
-        "--tl-vue-node-footer-pad-left": "0.56rem",
-        "--tl-vue-node-footer-pad-right": "0.56rem",
+        "--tl-vue-node-header-inset-left": "0.44rem",
+        "--tl-vue-node-header-inset-right": "0.44rem",
+        "--tl-vue-node-body-inset-left": "0.44rem",
+        "--tl-vue-node-body-inset-right": "0.44rem",
+        "--tl-vue-node-footer-inset-left": "0.44rem",
+        "--tl-vue-node-footer-inset-right": "0.44rem",
+        "--tl-vue-node-header-pad-left": "0.92rem",
+        "--tl-vue-node-header-pad-right": "0.92rem",
+        "--tl-vue-node-body-pad-left": "0.52rem",
+        "--tl-vue-node-body-pad-right": "0.52rem",
+        "--tl-vue-node-footer-pad-left": "0.52rem",
+        "--tl-vue-node-footer-pad-right": "0.52rem",
         "--tl-vue-node-body-pad-top": "0.3rem",
+        "--tl-vue-node-header-radius": "999px",
+        "--tl-vue-node-body-radius": "999px",
+        "--tl-vue-node-footer-radius": "999px",
         "--tl-vue-node-widget-gap": "0.42rem",
         "--tl-vue-node-widget-column-gap": "0.48rem",
         "--tl-vue-node-widget-row-radius": "999px",
-        "--tl-vue-node-input-slot-shift": fmtRem(0.2 + intensity * 0.16),
-        "--tl-vue-node-output-slot-shift": fmtRem(0.2 + intensity * 0.16),
+        "--tl-vue-node-input-slot-shift": fmtRem(0.12 + intensity * 0.1),
+        "--tl-vue-node-output-slot-shift": fmtRem(0.12 + intensity * 0.1),
         "--tl-vue-node-widget-columns": "min-content minmax(90px, min-content) minmax(136px, 1fr)",
       });
       break;
     case "panel":
       Object.assign(vars, {
         "--tl-vue-node-shell-radius": "var(--tl-node-radius-soft-local)",
-        "--tl-vue-node-root-pad-top": "0.18rem",
-        "--tl-vue-node-root-pad-x": "0.1rem",
-        "--tl-vue-node-root-pad-bottom": "0.3rem",
-        "--tl-vue-node-header-inset-left": "0.62rem",
-        "--tl-vue-node-header-inset-right": "0.62rem",
-        "--tl-vue-node-header-margin-top": "0.32rem",
-        "--tl-vue-node-header-pad-left": "0.86rem",
-        "--tl-vue-node-header-pad-right": "0.86rem",
-        "--tl-vue-node-header-pad-y": "0.38rem",
-        "--tl-vue-node-body-inset-left": "0.58rem",
-        "--tl-vue-node-body-inset-right": "0.58rem",
-        "--tl-vue-node-body-margin-top": "0.22rem",
-        "--tl-vue-node-body-pad-left": "0.5rem",
-        "--tl-vue-node-body-pad-right": "0.5rem",
-        "--tl-vue-node-body-pad-top": "0.32rem",
-        "--tl-vue-node-body-pad-bottom": "0.82rem",
-        "--tl-vue-node-footer-inset-left": "0.58rem",
-        "--tl-vue-node-footer-inset-right": "0.58rem",
-        "--tl-vue-node-footer-margin-top": "0.22rem",
-        "--tl-vue-node-footer-pad-left": "0.5rem",
-        "--tl-vue-node-footer-pad-right": "0.5rem",
-        "--tl-vue-node-widget-gap": "0.46rem",
-        "--tl-vue-node-widget-column-gap": "0.5rem",
-        "--tl-vue-node-widget-row-radius": "16px",
-        "--tl-vue-node-shell-frame-opacity": String(clamp(0.72 + intensity * 0.18, 0, 1)),
+        "--tl-vue-node-root-pad-top": "0.1rem",
+        "--tl-vue-node-root-pad-x": "0.08rem",
+        "--tl-vue-node-root-pad-bottom": "0.16rem",
+        "--tl-vue-node-header-inset-left": "0.38rem",
+        "--tl-vue-node-header-inset-right": "0.38rem",
+        "--tl-vue-node-header-margin-top": "0.18rem",
+        "--tl-vue-node-header-pad-left": "0.8rem",
+        "--tl-vue-node-header-pad-right": "0.8rem",
+        "--tl-vue-node-header-pad-y": "0.4rem",
+        "--tl-vue-node-body-inset-left": "0.34rem",
+        "--tl-vue-node-body-inset-right": "0.34rem",
+        "--tl-vue-node-body-margin-top": "0.14rem",
+        "--tl-vue-node-body-pad-left": "0.46rem",
+        "--tl-vue-node-body-pad-right": "0.46rem",
+        "--tl-vue-node-body-pad-top": "0.3rem",
+        "--tl-vue-node-body-pad-bottom": "0.74rem",
+        "--tl-vue-node-footer-inset-left": "0.34rem",
+        "--tl-vue-node-footer-inset-right": "0.34rem",
+        "--tl-vue-node-footer-margin-top": "0.14rem",
+        "--tl-vue-node-footer-pad-left": "0.46rem",
+        "--tl-vue-node-footer-pad-right": "0.46rem",
+        "--tl-vue-node-header-radius": "18px",
+        "--tl-vue-node-body-radius": "14px",
+        "--tl-vue-node-footer-radius": "14px",
+        "--tl-vue-node-widget-gap": "0.4rem",
+        "--tl-vue-node-widget-column-gap": "0.44rem",
+        "--tl-vue-node-widget-row-radius": "14px",
+        "--tl-vue-node-shell-frame-opacity": String(clamp(0.4 + intensity * 0.16, 0, 1)),
         "--tl-vue-node-widget-columns": "min-content minmax(88px, min-content) minmax(138px, 1fr)",
       });
       break;
     case "notch":
       Object.assign(vars, {
         "--tl-vue-node-shell-radius": "var(--tl-node-radius-soft-local)",
-        "--tl-vue-node-root-pad-top": "1rem",
-        "--tl-vue-node-root-pad-x": "0.08rem",
+        "--tl-vue-node-root-pad-top": "0.18rem",
+        "--tl-vue-node-root-pad-x": "0.06rem",
         "--tl-vue-node-root-pad-bottom": "0.12rem",
-        "--tl-vue-node-header-inset-left": "0.34rem",
-        "--tl-vue-node-header-inset-right": "0.34rem",
-        "--tl-vue-node-header-margin-top": "0.46rem",
-        "--tl-vue-node-header-pad-left": "0.8rem",
-        "--tl-vue-node-header-pad-right": "0.8rem",
-        "--tl-vue-node-body-inset-left": "0.26rem",
-        "--tl-vue-node-body-inset-right": "0.26rem",
-        "--tl-vue-node-body-margin-top": "0.18rem",
-        "--tl-vue-node-body-pad-left": "0.4rem",
-        "--tl-vue-node-body-pad-right": "0.4rem",
-        "--tl-vue-node-footer-inset-left": "0.26rem",
-        "--tl-vue-node-footer-inset-right": "0.26rem",
-        "--tl-vue-node-footer-pad-left": "0.4rem",
-        "--tl-vue-node-footer-pad-right": "0.4rem",
-        "--tl-vue-node-tab-width": fmtRem(5.6 + intensity * 0.75),
-        "--tl-vue-node-tab-height": fmtRem(0.86 + intensity * 0.12),
-        "--tl-vue-node-tab-lift": fmtRem(0.74 + intensity * 0.16),
+        "--tl-vue-node-header-inset-left": "0.72rem",
+        "--tl-vue-node-header-inset-right": "0.72rem",
+        "--tl-vue-node-header-margin-top": "0.18rem",
+        "--tl-vue-node-header-pad-left": "0.74rem",
+        "--tl-vue-node-header-pad-right": "0.74rem",
+        "--tl-vue-node-header-pad-y": "0.34rem",
+        "--tl-vue-node-body-inset-left": "0.22rem",
+        "--tl-vue-node-body-inset-right": "0.22rem",
+        "--tl-vue-node-body-margin-top": "0.14rem",
+        "--tl-vue-node-body-pad-left": "0.38rem",
+        "--tl-vue-node-body-pad-right": "0.38rem",
+        "--tl-vue-node-footer-inset-left": "0.22rem",
+        "--tl-vue-node-footer-inset-right": "0.22rem",
+        "--tl-vue-node-footer-pad-left": "0.38rem",
+        "--tl-vue-node-footer-pad-right": "0.38rem",
+        "--tl-vue-node-header-radius": "999px",
+        "--tl-vue-node-body-radius": "0 0 var(--tl-vue-node-shell-radius) var(--tl-vue-node-shell-radius)",
+        "--tl-vue-node-footer-radius": "0 0 var(--tl-vue-node-shell-radius) var(--tl-vue-node-shell-radius)",
+        "--tl-vue-node-tab-width": fmtRem(4.8 + intensity * 0.42),
+        "--tl-vue-node-tab-height": fmtRem(0.68 + intensity * 0.08),
+        "--tl-vue-node-tab-lift": fmtRem(0.42 + intensity * 0.08),
         "--tl-vue-node-widget-columns": "min-content minmax(86px, min-content) minmax(132px, 1fr)",
       });
       break;
@@ -543,49 +567,89 @@ function buildVueNodeLayoutVars(profile, surfaceStyle, shapeIntensity = 1, slotS
   switch (surfaceStyle) {
     case "soft-card":
       Object.assign(vars, {
-        "--tl-vue-node-root-pad-x": fmtRem(0.08 + intensity * 0.04),
-        "--tl-vue-node-root-pad-bottom": fmtRem(0.1 + intensity * 0.08),
-        "--tl-vue-node-header-inset-left": "max(var(--tl-vue-node-header-inset-left), 0.18rem)",
-        "--tl-vue-node-header-inset-right": "max(var(--tl-vue-node-header-inset-right), 0.18rem)",
-        "--tl-vue-node-body-inset-left": "max(var(--tl-vue-node-body-inset-left), 0.18rem)",
-        "--tl-vue-node-body-inset-right": "max(var(--tl-vue-node-body-inset-right), 0.18rem)",
-        "--tl-vue-node-footer-inset-left": "max(var(--tl-vue-node-footer-inset-left), 0.18rem)",
-        "--tl-vue-node-footer-inset-right": "max(var(--tl-vue-node-footer-inset-right), 0.18rem)",
-        "--tl-vue-node-header-pad-left": "max(var(--tl-vue-node-header-pad-left), 0.82rem)",
-        "--tl-vue-node-header-pad-right": "max(var(--tl-vue-node-header-pad-right), 0.82rem)",
-        "--tl-vue-node-body-pad-left": "max(var(--tl-vue-node-body-pad-left), 0.44rem)",
-        "--tl-vue-node-body-pad-right": "max(var(--tl-vue-node-body-pad-right), 0.44rem)",
-        "--tl-vue-node-footer-pad-left": "max(var(--tl-vue-node-footer-pad-left), 0.44rem)",
-        "--tl-vue-node-footer-pad-right": "max(var(--tl-vue-node-footer-pad-right), 0.44rem)",
-        "--tl-vue-node-widget-gap": fmtRem(0.34 + intensity * 0.09),
-        "--tl-vue-node-widget-column-gap": fmtRem(0.34 + intensity * 0.1),
-        "--tl-vue-node-widget-row-radius": `${Math.round((14 + intensity * 4.25) * 100) / 100}px`,
-        "--tl-vue-node-widget-extra-height": `${Math.round((4 + intensity * 4.5) * 100) / 100}px`,
-        "--tl-vue-node-input-slot-shift": "var(--tl-node-soft-slot-offset, 16px)",
-        "--tl-vue-node-output-slot-shift": "var(--tl-node-soft-slot-offset, 16px)",
-        "--tl-vue-node-widget-columns": "min-content minmax(88px, min-content) minmax(140px, 1fr)",
+        "--tl-vue-node-root-pad-top": fmtRem(0.04 + intensity * 0.05),
+        "--tl-vue-node-root-pad-x": fmtRem(0.12 + intensity * 0.06),
+        "--tl-vue-node-root-pad-bottom": fmtRem(0.14 + intensity * 0.1),
+        "--tl-vue-node-header-inset-left": "max(var(--tl-vue-node-header-inset-left), 0.24rem)",
+        "--tl-vue-node-header-inset-right": "max(var(--tl-vue-node-header-inset-right), 0.24rem)",
+        "--tl-vue-node-body-inset-left": "max(var(--tl-vue-node-body-inset-left), 0.22rem)",
+        "--tl-vue-node-body-inset-right": "max(var(--tl-vue-node-body-inset-right), 0.22rem)",
+        "--tl-vue-node-footer-inset-left": "max(var(--tl-vue-node-footer-inset-left), 0.22rem)",
+        "--tl-vue-node-footer-inset-right": "max(var(--tl-vue-node-footer-inset-right), 0.22rem)",
+        "--tl-vue-node-header-margin-top": `max(var(--tl-vue-node-header-margin-top), ${fmtRem(0.04 + intensity * 0.05)})`,
+        "--tl-vue-node-header-pad-left": "max(var(--tl-vue-node-header-pad-left), 0.9rem)",
+        "--tl-vue-node-header-pad-right": "max(var(--tl-vue-node-header-pad-right), 0.9rem)",
+        "--tl-vue-node-header-pad-y": "max(var(--tl-vue-node-header-pad-y), 0.52rem)",
+        "--tl-vue-node-body-pad-left": "max(var(--tl-vue-node-body-pad-left), 0.5rem)",
+        "--tl-vue-node-body-pad-right": "max(var(--tl-vue-node-body-pad-right), 0.5rem)",
+        "--tl-vue-node-body-pad-top": "max(var(--tl-vue-node-body-pad-top), 0.32rem)",
+        "--tl-vue-node-body-pad-bottom": `max(var(--tl-vue-node-body-pad-bottom), ${fmtRem(0.74 + intensity * 0.08)})`,
+        "--tl-vue-node-footer-pad-left": "max(var(--tl-vue-node-footer-pad-left), 0.5rem)",
+        "--tl-vue-node-footer-pad-right": "max(var(--tl-vue-node-footer-pad-right), 0.5rem)",
+        "--tl-vue-node-widget-gap": fmtRem(0.42 + intensity * 0.11),
+        "--tl-vue-node-widget-column-gap": fmtRem(0.4 + intensity * 0.11),
+        "--tl-vue-node-widget-row-radius": `${Math.round((16 + intensity * 4.6) * 100) / 100}px`,
+        "--tl-vue-node-widget-extra-height": `${Math.round((5 + intensity * 5.2) * 100) / 100}px`,
+        "--tl-vue-node-input-slot-shift": `max(var(--tl-node-soft-slot-offset, 16px), ${fmtRem(0.9 + intensity * 0.18)})`,
+        "--tl-vue-node-output-slot-shift": `max(var(--tl-node-soft-slot-offset, 16px), ${fmtRem(0.9 + intensity * 0.18)})`,
+        "--tl-vue-node-widget-columns": "min-content minmax(92px, min-content) minmax(150px, 1fr)",
       });
       break;
     case "media-card":
       Object.assign(vars, {
-        "--tl-vue-node-root-pad-top": fmtRem(0.04 + intensity * 0.04),
-        "--tl-vue-node-root-pad-x": fmtRem(0.1 + intensity * 0.06),
-        "--tl-vue-node-root-pad-bottom": fmtRem(0.12 + intensity * 0.1),
-        "--tl-vue-node-header-inset-left": "max(var(--tl-vue-node-header-inset-left), 0.24rem)",
-        "--tl-vue-node-header-inset-right": "max(var(--tl-vue-node-header-inset-right), 0.28rem)",
-        "--tl-vue-node-body-inset-left": "max(var(--tl-vue-node-body-inset-left), 0.24rem)",
-        "--tl-vue-node-body-inset-right": "max(var(--tl-vue-node-body-inset-right), 0.28rem)",
-        "--tl-vue-node-footer-inset-left": "max(var(--tl-vue-node-footer-inset-left), 0.24rem)",
-        "--tl-vue-node-footer-inset-right": "max(var(--tl-vue-node-footer-inset-right), 0.28rem)",
-        "--tl-vue-node-header-pad-left": "max(var(--tl-vue-node-header-pad-left), 0.92rem)",
-        "--tl-vue-node-header-pad-right": "max(var(--tl-vue-node-header-pad-right), 0.92rem)",
-        "--tl-vue-node-body-pad-top": "max(var(--tl-vue-node-body-pad-top), 0.36rem)",
-        "--tl-vue-node-body-pad-bottom": fmtRem(0.62 + intensity * 0.28),
-        "--tl-vue-node-widget-gap": fmtRem(0.38 + intensity * 0.14),
-        "--tl-vue-node-widget-column-gap": fmtRem(0.36 + intensity * 0.12),
-        "--tl-vue-node-widget-row-radius": `${Math.round((14 + intensity * 4.5) * 100) / 100}px`,
-        "--tl-vue-node-widget-extra-height": `${Math.round((6 + intensity * 4.75) * 100) / 100}px`,
-        "--tl-vue-node-widget-columns": "min-content minmax(96px, min-content) minmax(148px, 1fr)",
+        "--tl-vue-node-root-pad-top": fmtRem(0.08 + intensity * 0.06),
+        "--tl-vue-node-root-pad-x": fmtRem(0.16 + intensity * 0.08),
+        "--tl-vue-node-root-pad-bottom": fmtRem(0.18 + intensity * 0.12),
+        "--tl-vue-node-header-inset-left": "max(var(--tl-vue-node-header-inset-left), 0.34rem)",
+        "--tl-vue-node-header-inset-right": "max(var(--tl-vue-node-header-inset-right), 0.38rem)",
+        "--tl-vue-node-body-inset-left": "max(var(--tl-vue-node-body-inset-left), 0.32rem)",
+        "--tl-vue-node-body-inset-right": "max(var(--tl-vue-node-body-inset-right), 0.38rem)",
+        "--tl-vue-node-footer-inset-left": "max(var(--tl-vue-node-footer-inset-left), 0.32rem)",
+        "--tl-vue-node-footer-inset-right": "max(var(--tl-vue-node-footer-inset-right), 0.38rem)",
+        "--tl-vue-node-header-margin-top": `max(var(--tl-vue-node-header-margin-top), ${fmtRem(0.04 + intensity * 0.05)})`,
+        "--tl-vue-node-header-pad-left": "max(var(--tl-vue-node-header-pad-left), 1rem)",
+        "--tl-vue-node-header-pad-right": "max(var(--tl-vue-node-header-pad-right), 1rem)",
+        "--tl-vue-node-header-pad-y": "max(var(--tl-vue-node-header-pad-y), 0.56rem)",
+        "--tl-vue-node-body-pad-top": "max(var(--tl-vue-node-body-pad-top), 0.42rem)",
+        "--tl-vue-node-body-pad-bottom": fmtRem(0.72 + intensity * 0.34),
+        "--tl-vue-node-footer-pad-left": "max(var(--tl-vue-node-footer-pad-left), 0.52rem)",
+        "--tl-vue-node-footer-pad-right": "max(var(--tl-vue-node-footer-pad-right), 0.58rem)",
+        "--tl-vue-node-widget-gap": fmtRem(0.48 + intensity * 0.14),
+        "--tl-vue-node-widget-column-gap": fmtRem(0.42 + intensity * 0.14),
+        "--tl-vue-node-widget-row-radius": `${Math.round((16 + intensity * 5.2) * 100) / 100}px`,
+        "--tl-vue-node-widget-extra-height": `${Math.round((8 + intensity * 5.2) * 100) / 100}px`,
+        "--tl-vue-node-input-slot-shift": fmtRem(0.18 + intensity * 0.2),
+        "--tl-vue-node-output-slot-shift": fmtRem(0.18 + intensity * 0.2),
+        "--tl-vue-node-widget-columns": "min-content minmax(100px, min-content) minmax(158px, 1fr)",
+      });
+      break;
+    case "minimal-card":
+      Object.assign(vars, {
+        "--tl-vue-node-root-pad-top": "0.01rem",
+        "--tl-vue-node-root-pad-x": "0.04rem",
+        "--tl-vue-node-root-pad-bottom": "0.06rem",
+        "--tl-vue-node-header-inset-left": "max(var(--tl-vue-node-header-inset-left), 0.12rem)",
+        "--tl-vue-node-header-inset-right": "max(var(--tl-vue-node-header-inset-right), 0.12rem)",
+        "--tl-vue-node-body-inset-left": "max(var(--tl-vue-node-body-inset-left), 0.12rem)",
+        "--tl-vue-node-body-inset-right": "max(var(--tl-vue-node-body-inset-right), 0.12rem)",
+        "--tl-vue-node-footer-inset-left": "max(var(--tl-vue-node-footer-inset-left), 0.12rem)",
+        "--tl-vue-node-footer-inset-right": "max(var(--tl-vue-node-footer-inset-right), 0.12rem)",
+        "--tl-vue-node-header-pad-left": "max(var(--tl-vue-node-header-pad-left), 0.7rem)",
+        "--tl-vue-node-header-pad-right": "max(var(--tl-vue-node-header-pad-right), 0.7rem)",
+        "--tl-vue-node-header-pad-y": "max(var(--tl-vue-node-header-pad-y), 0.32rem)",
+        "--tl-vue-node-body-pad-left": "max(var(--tl-vue-node-body-pad-left), 0.32rem)",
+        "--tl-vue-node-body-pad-right": "max(var(--tl-vue-node-body-pad-right), 0.32rem)",
+        "--tl-vue-node-body-pad-top": "max(var(--tl-vue-node-body-pad-top), 0.2rem)",
+        "--tl-vue-node-body-pad-bottom": "max(var(--tl-vue-node-body-pad-bottom), 0.58rem)",
+        "--tl-vue-node-footer-pad-left": "max(var(--tl-vue-node-footer-pad-left), 0.32rem)",
+        "--tl-vue-node-footer-pad-right": "max(var(--tl-vue-node-footer-pad-right), 0.32rem)",
+        "--tl-vue-node-widget-gap": fmtRem(0.18 + intensity * 0.06),
+        "--tl-vue-node-widget-column-gap": fmtRem(0.2 + intensity * 0.06),
+        "--tl-vue-node-widget-row-radius": `${Math.round((11 + intensity * 1.8) * 100) / 100}px`,
+        "--tl-vue-node-widget-extra-height": `${Math.round((1 + intensity * 2) * 100) / 100}px`,
+        "--tl-vue-node-input-slot-shift": fmtRem(0.04 + intensity * 0.06),
+        "--tl-vue-node-output-slot-shift": fmtRem(0.04 + intensity * 0.06),
+        "--tl-vue-node-widget-columns": "min-content minmax(76px, min-content) minmax(120px, 1fr)",
       });
       break;
     case "minimal-wire":
@@ -620,27 +684,33 @@ function buildVueNodeLayoutVars(profile, surfaceStyle, shapeIntensity = 1, slotS
     case "glass-panel":
     case "liquid-glass":
       Object.assign(vars, {
-        "--tl-vue-node-root-pad-top": fmtRem(0.04 + intensity * 0.04),
-        "--tl-vue-node-root-pad-x": fmtRem(0.04 + intensity * 0.06),
-        "--tl-vue-node-root-pad-bottom": fmtRem(0.06 + intensity * 0.08),
-        "--tl-vue-node-header-inset-left": "max(var(--tl-vue-node-header-inset-left), 0.14rem)",
-        "--tl-vue-node-header-inset-right": "max(var(--tl-vue-node-header-inset-right), 0.14rem)",
-        "--tl-vue-node-body-inset-left": "max(var(--tl-vue-node-body-inset-left), 0.14rem)",
-        "--tl-vue-node-body-inset-right": "max(var(--tl-vue-node-body-inset-right), 0.14rem)",
-        "--tl-vue-node-footer-inset-left": "max(var(--tl-vue-node-footer-inset-left), 0.14rem)",
-        "--tl-vue-node-footer-inset-right": "max(var(--tl-vue-node-footer-inset-right), 0.14rem)",
-        "--tl-vue-node-widget-gap": fmtRem(0.28 + intensity * 0.12),
-        "--tl-vue-node-widget-column-gap": fmtRem(0.3 + intensity * 0.12),
-        "--tl-vue-node-widget-row-radius": `${Math.round(((surfaceStyle === "liquid-glass" ? 12 : 10) + intensity * 5) * 100) / 100}px`,
-        "--tl-vue-node-widget-extra-height": `${Math.round((4 + intensity * 4.25) * 100) / 100}px`,
-        "--tl-vue-node-widget-columns": "min-content minmax(84px, min-content) minmax(132px, 1fr)",
+        "--tl-vue-node-root-pad-top": fmtRem(0.08 + intensity * 0.05),
+        "--tl-vue-node-root-pad-x": fmtRem(0.1 + intensity * 0.08),
+        "--tl-vue-node-root-pad-bottom": fmtRem(0.12 + intensity * 0.1),
+        "--tl-vue-node-header-inset-left": "max(var(--tl-vue-node-header-inset-left), 0.22rem)",
+        "--tl-vue-node-header-inset-right": "max(var(--tl-vue-node-header-inset-right), 0.22rem)",
+        "--tl-vue-node-body-inset-left": "max(var(--tl-vue-node-body-inset-left), 0.2rem)",
+        "--tl-vue-node-body-inset-right": "max(var(--tl-vue-node-body-inset-right), 0.2rem)",
+        "--tl-vue-node-footer-inset-left": "max(var(--tl-vue-node-footer-inset-left), 0.2rem)",
+        "--tl-vue-node-footer-inset-right": "max(var(--tl-vue-node-footer-inset-right), 0.2rem)",
+        "--tl-vue-node-header-pad-left": "max(var(--tl-vue-node-header-pad-left), 0.86rem)",
+        "--tl-vue-node-header-pad-right": "max(var(--tl-vue-node-header-pad-right), 0.86rem)",
+        "--tl-vue-node-body-pad-left": "max(var(--tl-vue-node-body-pad-left), 0.42rem)",
+        "--tl-vue-node-body-pad-right": "max(var(--tl-vue-node-body-pad-right), 0.42rem)",
+        "--tl-vue-node-footer-pad-left": "max(var(--tl-vue-node-footer-pad-left), 0.42rem)",
+        "--tl-vue-node-footer-pad-right": "max(var(--tl-vue-node-footer-pad-right), 0.42rem)",
+        "--tl-vue-node-widget-gap": fmtRem(0.36 + intensity * 0.14),
+        "--tl-vue-node-widget-column-gap": fmtRem(0.34 + intensity * 0.14),
+        "--tl-vue-node-widget-row-radius": `${Math.round(((surfaceStyle === "liquid-glass" ? 14 : 12) + intensity * 5.2) * 100) / 100}px`,
+        "--tl-vue-node-widget-extra-height": `${Math.round((5 + intensity * 4.6) * 100) / 100}px`,
+        "--tl-vue-node-widget-columns": "min-content minmax(88px, min-content) minmax(138px, 1fr)",
       });
       break;
     case "studio-frame":
       Object.assign(vars, {
-        "--tl-vue-node-root-pad-top": fmtRem(0.08 + intensity * 0.12),
-        "--tl-vue-node-root-pad-x": fmtRem(0.04 + intensity * 0.08),
-        "--tl-vue-node-root-pad-bottom": fmtRem(0.08 + intensity * 0.08),
+        "--tl-vue-node-root-pad-top": fmtRem(0.14 + intensity * 0.14),
+        "--tl-vue-node-root-pad-x": fmtRem(0.08 + intensity * 0.1),
+        "--tl-vue-node-root-pad-bottom": fmtRem(0.12 + intensity * 0.1),
         "--tl-vue-node-header-inset-left": `max(var(--tl-vue-node-header-inset-left), ${fmtRem(0.2 + intensity * 0.2)})`,
         "--tl-vue-node-header-inset-right": `max(var(--tl-vue-node-header-inset-right), ${fmtRem(0.2 + intensity * 0.2)})`,
         "--tl-vue-node-body-inset-left": `max(var(--tl-vue-node-body-inset-left), ${fmtRem(0.2 + intensity * 0.2)})`,
@@ -649,10 +719,14 @@ function buildVueNodeLayoutVars(profile, surfaceStyle, shapeIntensity = 1, slotS
         "--tl-vue-node-footer-inset-right": `max(var(--tl-vue-node-footer-inset-right), ${fmtRem(0.2 + intensity * 0.2)})`,
         "--tl-vue-node-header-margin-top": `max(var(--tl-vue-node-header-margin-top), ${fmtRem(0.12 + intensity * 0.16)})`,
         "--tl-vue-node-body-margin-top": `max(var(--tl-vue-node-body-margin-top), ${fmtRem(0.06 + intensity * 0.12)})`,
-        "--tl-vue-node-widget-gap": fmtRem(0.22 + intensity * 0.12),
-        "--tl-vue-node-widget-column-gap": fmtRem(0.24 + intensity * 0.12),
+        "--tl-vue-node-header-extra-height": `${Math.round((2 + intensity * 2.5) * 100) / 100}px`,
+        "--tl-vue-node-widget-gap": fmtRem(0.3 + intensity * 0.14),
+        "--tl-vue-node-widget-column-gap": fmtRem(0.3 + intensity * 0.12),
         "--tl-vue-node-shell-frame-opacity": String(clamp(0.58 + intensity * 0.26, 0, 1)),
-        "--tl-vue-node-widget-columns": "min-content minmax(82px, min-content) minmax(128px, 1fr)",
+        "--tl-vue-node-tab-width": fmtRem(4.4 + intensity * 1.4),
+        "--tl-vue-node-tab-height": fmtRem(0.64 + intensity * 0.14),
+        "--tl-vue-node-tab-lift": fmtRem(0.8 + intensity * 0.14),
+        "--tl-vue-node-widget-columns": "min-content minmax(84px, min-content) minmax(132px, 1fr)",
       });
       break;
     default:
@@ -906,61 +980,94 @@ function applyVueNodeInlineStyles(config) {
 
     if (surfaceStyle === "soft-card") {
       setVueNodeInlineProperties(nodeEl, {
-        "background-color": "rgba(26, 29, 36, 0.96)",
-        "border-color": "rgba(255, 255, 255, 0.055)",
+        "background-color": "rgba(26, 29, 36, 0.94)",
+        "border-color": "rgba(255, 255, 255, 0.04)",
         "box-shadow": combineBoxShadows(
-          "0 30px 58px rgba(0, 0, 0, 0.36)",
-          "0 14px 24px rgba(0, 0, 0, 0.14)",
-          "0 0 0 1px rgba(255, 255, 255, 0.04) inset",
+          "0 34px 64px rgba(0, 0, 0, 0.34)",
+          "0 18px 28px rgba(0, 0, 0, 0.12)",
+          "0 0 0 1px rgba(255, 255, 255, 0.03) inset",
           stateShadow,
         ),
       });
       setVueNodeInlinePropertiesMany(shellEls, {
-        background: "linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 24%), rgba(18, 21, 28, 0.92)",
+        background: "linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 26%), rgba(18, 21, 28, 0.88)",
       });
       setVueNodeInlineProperties(widgetsEl, {
         "row-gap": "0.45rem",
         "padding-right": "0.35rem",
       });
       setVueNodeInlinePropertiesMany(widgetRows, {
-        "border-radius": "18px",
-        background: "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015) 42%), rgba(10, 14, 20, 0.62)",
-        "box-shadow": "0 0 0 1px rgba(255, 255, 255, 0.03) inset",
+        "border-radius": "20px",
+        background: "linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012) 42%), rgba(10, 14, 20, 0.56)",
+        "box-shadow": "0 0 0 1px rgba(255, 255, 255, 0.025) inset",
         "padding-left": "0.15rem",
-        "padding-right": "0.45rem",
-        "min-height": "calc(var(--tl-node-widget-height, 24px) + 8px)",
+        "padding-right": "0.5rem",
+        "min-height": "calc(var(--tl-node-widget-height, 24px) + 10px)",
       });
     } else if (surfaceStyle === "media-card") {
       setVueNodeInlineProperties(nodeEl, {
-        "background-color": "rgba(12, 15, 20, 0.98)",
-        "border-color": "rgba(255, 255, 255, 0.075)",
+        "background-color": "rgba(11, 14, 19, 0.96)",
+        "border-color": "rgba(255, 255, 255, 0.06)",
         "box-shadow": combineBoxShadows(
-          "0 30px 62px rgba(0, 0, 0, 0.42)",
-          "0 0 0 1px rgba(255, 255, 255, 0.05) inset",
+          "0 34px 68px rgba(0, 0, 0, 0.42)",
+          "0 0 0 1px rgba(255, 255, 255, 0.04) inset",
           stateShadow,
         ),
       });
       setVueNodeInlinePropertiesMany(shellEls, {
-        background: "linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%), linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.18) 100%), rgba(14, 16, 22, 0.92)",
+        background: "linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 26%), linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.22) 100%), rgba(13, 15, 21, 0.88)",
       });
       setVueNodeInlineProperties(widgetsEl, {
         "row-gap": "0.55rem",
         "padding-right": "0.4rem",
       });
       setVueNodeInlinePropertiesMany(widgetRows, {
-        "border-radius": "18px",
-        background: "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01) 38%), rgba(7, 10, 14, 0.78)",
-        "box-shadow": "0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 10px 18px rgba(0, 0, 0, 0.16)",
-        "padding-left": "0.2rem",
-        "padding-right": "0.55rem",
-        "min-height": "calc(var(--tl-node-widget-height, 24px) + 10px)",
+        "border-radius": "20px",
+        background: "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01) 38%), rgba(7, 10, 14, 0.72)",
+        "box-shadow": "0 0 0 1px rgba(255, 255, 255, 0.035) inset, 0 10px 18px rgba(0, 0, 0, 0.14)",
+        "padding-left": "0.24rem",
+        "padding-right": "0.6rem",
+        "min-height": "calc(var(--tl-node-widget-height, 24px) + 12px)",
       });
       for (const dotEl of slotDots) {
         setVueNodeInlineProperties(dotEl, {
-          width: "0.88rem",
-          height: "0.88rem",
-          "border-color": "rgba(212, 236, 190, 0.3)",
-          "box-shadow": "0 0 0 0.28rem rgba(111, 141, 89, 0.12)",
+          width: "0.94rem",
+          height: "0.94rem",
+          "border-color": "rgba(226, 241, 222, 0.26)",
+          "box-shadow": "0 0 0 0.34rem rgba(111, 141, 89, 0.1)",
+        });
+      }
+    } else if (surfaceStyle === "minimal-card") {
+      setVueNodeInlineProperties(nodeEl, {
+        "background-color": "rgba(23, 25, 31, 0.97)",
+        "border-color": "rgba(255, 255, 255, 0.028)",
+        "box-shadow": combineBoxShadows(
+          "0 12px 18px rgba(0, 0, 0, 0.15)",
+          "0 0 0 1px rgba(255, 255, 255, 0.02) inset",
+          stateShadow,
+        ),
+      });
+      setVueNodeInlinePropertiesMany(shellEls, {
+        background: "rgba(22, 24, 30, 0.94)",
+      });
+      setVueNodeInlineProperties(widgetsEl, {
+        "row-gap": "0.18rem",
+      });
+      setVueNodeInlinePropertiesMany(widgetRows, {
+        "border-radius": "12px",
+        background: "rgba(255, 255, 255, 0.014)",
+        "box-shadow": "0 0 0 1px rgba(255, 255, 255, 0.022) inset",
+        "padding-left": "0.1rem",
+        "padding-right": "0.28rem",
+        "min-height": "calc(var(--tl-node-widget-height, 20px) + 4px)",
+      });
+      for (const dotEl of slotDots) {
+        setVueNodeInlineProperties(dotEl, {
+          width: "0.6rem",
+          height: "0.6rem",
+          background: "rgba(255, 255, 255, 0.035)",
+          "border-color": "rgba(232, 236, 242, 0.18)",
+          "box-shadow": "0 0 0 0.08rem rgba(255, 255, 255, 0.02)",
         });
       }
     } else if (surfaceStyle === "minimal-wire") {
@@ -996,10 +1103,10 @@ function applyVueNodeInlineStyles(config) {
       }
     } else if (surfaceStyle === "studio-frame") {
       setVueNodeInlineProperties(nodeEl, {
-        "background-color": "rgba(16, 20, 26, 0.96)",
+        "background-color": "rgba(15, 19, 24, 0.95)",
         "border-color": "rgba(255, 255, 255, 0.06)",
         "box-shadow": combineBoxShadows(
-          "0 20px 36px rgba(0, 0, 0, 0.3)",
+          "0 22px 40px rgba(0, 0, 0, 0.28)",
           "0 0 0 1px rgba(255, 255, 255, 0.06) inset",
           stateShadow,
         ),
@@ -1012,11 +1119,11 @@ function applyVueNodeInlineStyles(config) {
       });
       setVueNodeInlinePropertiesMany(widgetRows, {
         "border-radius": "12px",
-        background: "rgba(255, 255, 255, 0.022)",
-        "box-shadow": "0 0 0 1px rgba(143, 163, 183, 0.18) inset",
+        background: "rgba(255, 255, 255, 0.02)",
+        "box-shadow": "0 0 0 1px rgba(143, 163, 183, 0.14) inset",
         "padding-left": "0.12rem",
-        "padding-right": "0.4rem",
-        "min-height": "calc(var(--tl-node-widget-height, 22px) + 7px)",
+        "padding-right": "0.44rem",
+        "min-height": "calc(var(--tl-node-widget-height, 22px) + 8px)",
       });
     } else if (surfaceStyle === "neon-edge") {
       setVueNodeInlineProperties(nodeEl, {
@@ -1044,22 +1151,22 @@ function applyVueNodeInlineStyles(config) {
       });
     } else if (surfaceStyle === "glass-panel" || surfaceStyle === "liquid-glass") {
       setVueNodeInlineProperties(nodeEl, {
-        "background-color": surfaceStyle === "liquid-glass" ? "rgba(208, 229, 255, 0.06)" : "rgba(22, 28, 36, 0.1)",
-        "border-color": "rgba(236, 245, 255, 0.07)",
-        "backdrop-filter": "blur(18px) saturate(138%)",
-        "-webkit-backdrop-filter": "blur(18px) saturate(138%)",
+        "background-color": surfaceStyle === "liquid-glass" ? "rgba(208, 229, 255, 0.04)" : "rgba(22, 28, 36, 0.075)",
+        "border-color": "rgba(236, 245, 255, 0.05)",
+        "backdrop-filter": "blur(20px) saturate(138%)",
+        "-webkit-backdrop-filter": "blur(20px) saturate(138%)",
         "box-shadow": combineBoxShadows(
-          "0 18px 42px rgba(0, 0, 0, 0.16)",
-          "0 0 0 1px rgba(255, 255, 255, 0.035) inset",
+          "0 18px 42px rgba(0, 0, 0, 0.14)",
+          "0 0 0 1px rgba(255, 255, 255, 0.026) inset",
           stateShadow,
         ),
       });
       setVueNodeInlinePropertiesMany(shellEls, {
         background: surfaceStyle === "liquid-glass"
-          ? "linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.015) 34%), rgba(208, 229, 255, 0.06)"
-          : "linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 26%), rgba(12, 18, 26, 0.08)",
-        "backdrop-filter": "blur(22px) saturate(148%)",
-        "-webkit-backdrop-filter": "blur(22px) saturate(148%)",
+          ? "linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.012) 34%), rgba(208, 229, 255, 0.04)"
+          : "linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 26%), rgba(12, 18, 26, 0.06)",
+        "backdrop-filter": "blur(24px) saturate(150%)",
+        "-webkit-backdrop-filter": "blur(24px) saturate(150%)",
       });
       setVueNodeInlineProperties(widgetsEl, {
         "row-gap": "0.42rem",
@@ -1067,23 +1174,23 @@ function applyVueNodeInlineStyles(config) {
       setVueNodeInlinePropertiesMany(widgetRows, {
         "border-radius": surfaceStyle === "liquid-glass" ? "18px" : "16px",
         background: surfaceStyle === "liquid-glass"
-          ? "linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.015) 34%), rgba(201, 230, 255, 0.07)"
-          : "linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01) 28%), rgba(14, 19, 27, 0.12)",
-        "backdrop-filter": "blur(22px) saturate(148%)",
-        "-webkit-backdrop-filter": "blur(22px) saturate(148%)",
+          ? "linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.012) 34%), rgba(201, 230, 255, 0.045)"
+          : "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01) 28%), rgba(14, 19, 27, 0.08)",
+        "backdrop-filter": "blur(24px) saturate(150%)",
+        "-webkit-backdrop-filter": "blur(24px) saturate(150%)",
         "box-shadow": surfaceStyle === "liquid-glass"
-          ? "0 0 0 1px rgba(245, 251, 255, 0.08) inset"
-          : "0 0 0 1px rgba(208, 230, 247, 0.05) inset",
+          ? "0 0 0 1px rgba(245, 251, 255, 0.05) inset"
+          : "0 0 0 1px rgba(208, 230, 247, 0.04) inset",
         "padding-left": "0.12rem",
-        "padding-right": "0.35rem",
-        "min-height": "calc(var(--tl-node-widget-height, 24px) + 8px)",
+        "padding-right": "0.38rem",
+        "min-height": "calc(var(--tl-node-widget-height, 24px) + 9px)",
       });
       for (const dotEl of slotDots) {
         setVueNodeInlineProperties(dotEl, {
-          "border-color": surfaceStyle === "liquid-glass" ? "rgba(242, 251, 255, 0.42)" : "rgba(217, 238, 255, 0.28)",
+          "border-color": surfaceStyle === "liquid-glass" ? "rgba(242, 251, 255, 0.34)" : "rgba(217, 238, 255, 0.22)",
           "box-shadow": surfaceStyle === "liquid-glass"
-            ? "0 0 0 0.28rem rgba(229, 246, 255, 0.12)"
-            : "0 0 0 0.22rem rgba(160, 198, 227, 0.08)",
+            ? "0 0 0 0.32rem rgba(229, 246, 255, 0.08)"
+            : "0 0 0 0.24rem rgba(160, 198, 227, 0.05)",
         });
       }
     }
@@ -1274,26 +1381,25 @@ function buildSquirclePath(ctx, x, y, width, height, radius) {
 }
 
 function buildPanelPath(ctx, x, y, width, height, radius) {
-  const topInset = Math.max(14, Math.min(width * 0.1, 26));
-  const bottomInset = Math.max(12, Math.min(width * 0.08, 18));
-  const shoulder = Math.max(10, Math.min(radius * 0.9, height * 0.18));
-  const footerLift = Math.max(7, Math.min(height * 0.065, 12));
+  const topInset = Math.max(12, Math.min(width * 0.075, 22));
+  const bottomInset = Math.max(8, Math.min(width * 0.05, 14));
+  const shoulder = Math.max(8, Math.min(radius * 0.55, height * 0.12));
   ctx.moveTo(x + topInset, y);
   ctx.lineTo(x + width - topInset, y);
   ctx.lineTo(x + width, y + shoulder);
-  ctx.lineTo(x + width, y + height - footerLift - bottomInset * 0.12);
+  ctx.lineTo(x + width, y + height - shoulder);
   ctx.lineTo(x + width - bottomInset, y + height);
   ctx.lineTo(x + bottomInset, y + height);
-  ctx.lineTo(x, y + height - footerLift - bottomInset * 0.12);
+  ctx.lineTo(x, y + height - shoulder);
   ctx.lineTo(x, y + shoulder);
   ctx.closePath();
 }
 
 function buildNotchedCardPath(ctx, x, y, width, height, radius) {
   const r = Math.max(0, Math.min(radius, width * 0.25, height * 0.25));
-  const notchWidth = Math.max(54, Math.min(width * 0.3, 112));
-  const notchDepth = Math.max(8, Math.min(height * 0.09, 15));
-  const shoulder = Math.max(10, Math.min(width * 0.04, 18));
+  const notchWidth = Math.max(46, Math.min(width * 0.24, 88));
+  const notchDepth = Math.max(5, Math.min(height * 0.05, 9));
+  const shoulder = Math.max(8, Math.min(width * 0.03, 14));
   const notchLeft = x + width * 0.5 - notchWidth * 0.5;
   const notchRight = notchLeft + notchWidth;
   ctx.moveTo(x + r, y);
@@ -1562,29 +1668,35 @@ function drawNodeSurfaceBase(ctx, node, size, litegraph, lowQuality, selected, f
     vignette.addColorStop(1, colorToRgba("#000000", 0.18));
     ctx.fillStyle = vignette;
     ctx.fillRect(area[0], area[1], area[2], area[3]);
+  } else if (style === "minimal-card") {
+    fillVertical([
+      [0, colorToRgba(titleColor, 0.12)],
+      [0.12, colorToRgba(bodyColor, 0.95)],
+      [1, colorToRgba(bodyColor, 0.985)],
+    ]);
   } else if (style === "minimal-wire") {
     ctx.fillStyle = colorToRgba(bodyColor, 0.96);
     ctx.fillRect(area[0], area[1], area[2], area[3]);
   } else if (style === "glass-panel") {
     fillVertical([
-      [0, colorToRgba("#0E1823", 0.16 + selectedBoost * 0.4)],
-      [0.24, colorToRgba(bodyColor, 0.12)],
-      [1, colorToRgba("#070C12", 0.18)],
+      [0, colorToRgba("#0E1823", 0.12 + selectedBoost * 0.28)],
+      [0.24, colorToRgba(bodyColor, 0.08)],
+      [1, colorToRgba("#070C12", 0.12)],
     ]);
     const tint = ctx.createLinearGradient(area[0], area[1], area[0] + area[2], area[1] + area[3]);
-    tint.addColorStop(0, colorToRgba("#DCEEFF", 0.05));
-    tint.addColorStop(1, colorToRgba(accentColor, 0.025));
+    tint.addColorStop(0, colorToRgba("#DCEEFF", 0.035));
+    tint.addColorStop(1, colorToRgba(accentColor, 0.016));
     ctx.fillStyle = tint;
     ctx.fillRect(area[0], area[1], area[2], area[3]);
   } else if (style === "liquid-glass") {
     fillVertical([
-      [0, colorToRgba("#F6FBFF", 0.1 + selectedBoost * 0.5)],
-      [0.32, colorToRgba(bodyColor, 0.045)],
-      [1, colorToRgba("#CFE8FF", 0.085)],
+      [0, colorToRgba("#F6FBFF", 0.08 + selectedBoost * 0.35)],
+      [0.32, colorToRgba(bodyColor, 0.028)],
+      [1, colorToRgba("#CFE8FF", 0.055)],
     ]);
     const tint = ctx.createLinearGradient(area[0], area[1], area[0] + area[2], area[1] + area[3]);
-    tint.addColorStop(0, colorToRgba("#FFFFFF", 0.08));
-    tint.addColorStop(1, colorToRgba("#AFE6FF", 0.045));
+    tint.addColorStop(0, colorToRgba("#FFFFFF", 0.055));
+    tint.addColorStop(1, colorToRgba("#AFE6FF", 0.024));
     ctx.fillStyle = tint;
     ctx.fillRect(area[0], area[1], area[2], area[3]);
   } else if (style === "studio-frame") {
@@ -1789,6 +1901,8 @@ function drawNodeSurfaceChrome(ctx, node, size, litegraph, lowQuality, selected,
     ctx.lineWidth = innerStrokeWidth;
     if (style === "media-card") {
       ctx.strokeStyle = colorToRgba(litegraph?.NODE_BOX_OUTLINE_COLOR || fgcolor || "#FFFFFF", 0.42);
+    } else if (style === "minimal-card") {
+      ctx.strokeStyle = colorToRgba(litegraph?.NODE_BOX_OUTLINE_COLOR || fgcolor || "#FFFFFF", 0.16);
     } else if (style === "soft-card") {
       ctx.strokeStyle = colorToRgba(litegraph?.NODE_BOX_OUTLINE_COLOR || fgcolor || "#FFFFFF", 0.28);
     } else if (style === "glass-panel") {
@@ -1812,9 +1926,9 @@ function drawNodeSurfaceChrome(ctx, node, size, litegraph, lowQuality, selected,
     ctx.save();
     ctx.beginPath();
     buildNodeOutlinePath(ctx, node, size, litegraph, lowQuality, { inset: 0.75 });
-    ctx.lineWidth = Math.max(3, Number(runtime.active.node_outline_width || 0) * 2.6);
+    ctx.lineWidth = Math.max(2.6, Number(runtime.active.node_outline_width || 0) * 2.2);
     ctx.strokeStyle = colorToRgba(litegraph?.NODE_BOX_OUTLINE_COLOR || fgcolor || "#FFFFFF", selected ? 0.18 : 0.11);
-    ctx.shadowBlur = Math.max(18, Number(runtime.active.node_shadow_blur || 0) * 1.15);
+    ctx.shadowBlur = Math.max(22, Number(runtime.active.node_shadow_blur || 0) * 1.22);
     ctx.shadowColor = colorToRgba(litegraph?.NODE_BOX_OUTLINE_COLOR || fgcolor || "#FFFFFF", selected ? 0.16 : 0.1);
     ctx.stroke();
     ctx.restore();
@@ -1837,24 +1951,24 @@ function drawNodeSurfaceChrome(ctx, node, size, litegraph, lowQuality, selected,
     buildNodeOutlinePath(ctx, node, size, litegraph, lowQuality);
     ctx.clip();
     const gloss = ctx.createLinearGradient(area[0], area[1], area[0] + area[2] * 0.72, area[1] + area[3]);
-    gloss.addColorStop(0, colorToRgba("#FFFFFF", 0.15));
-    gloss.addColorStop(0.22, colorToRgba("#D9E8F8", 0.08));
-    gloss.addColorStop(0.5, colorToRgba("#7EA2C7", 0.03));
+    gloss.addColorStop(0, colorToRgba("#FFFFFF", 0.12));
+    gloss.addColorStop(0.22, colorToRgba("#D9E8F8", 0.06));
+    gloss.addColorStop(0.5, colorToRgba("#7EA2C7", 0.02));
     gloss.addColorStop(1, colorToRgba("#FFFFFF", 0));
     ctx.fillStyle = gloss;
     ctx.fillRect(area[0], area[1], area[2], area[3]);
 
     const rim = ctx.createLinearGradient(area[0], area[1], area[0], area[1] + area[3]);
-    rim.addColorStop(0, colorToRgba("#F7FBFF", 0.16));
-    rim.addColorStop(0.22, colorToRgba("#CFE6FA", 0.08));
+    rim.addColorStop(0, colorToRgba("#F7FBFF", 0.12));
+    rim.addColorStop(0.22, colorToRgba("#CFE6FA", 0.06));
     rim.addColorStop(1, colorToRgba("#FFFFFF", 0));
     ctx.fillStyle = rim;
     ctx.fillRect(area[0], area[1], area[2], Math.max(20, area[3] * 0.4));
 
     const lowerHaze = ctx.createLinearGradient(0, area[1] + area[3] * 0.38, 0, area[1] + area[3]);
     lowerHaze.addColorStop(0, colorToRgba("#09111A", 0));
-    lowerHaze.addColorStop(0.55, colorToRgba("#081019", 0.04));
-    lowerHaze.addColorStop(1, colorToRgba("#000000", 0.12));
+    lowerHaze.addColorStop(0.55, colorToRgba("#081019", 0.02));
+    lowerHaze.addColorStop(1, colorToRgba("#000000", 0.08));
     ctx.fillStyle = lowerHaze;
     ctx.fillRect(area[0], area[1], area[2], area[3]);
     ctx.restore();
@@ -1863,10 +1977,10 @@ function drawNodeSurfaceChrome(ctx, node, size, litegraph, lowQuality, selected,
       ctx.save();
       ctx.beginPath();
       buildNodeOutlinePath(ctx, node, size, litegraph, lowQuality, { inset: 0.5 });
-      ctx.lineWidth = Math.max(2.8, Number(runtime.active.node_outline_width || 0) * 2.4);
-      ctx.strokeStyle = colorToRgba("#D9EEFF", 0.34);
-      ctx.shadowBlur = Math.max(10, Number(runtime.active.node_shadow_blur || 0) * 0.36);
-      ctx.shadowColor = colorToRgba("#B8DFFF", 0.12);
+      ctx.lineWidth = Math.max(3.2, Number(runtime.active.node_outline_width || 0) * 2.6 + 1.2);
+      ctx.strokeStyle = colorToRgba("#D9EEFF", 0.22);
+      ctx.shadowBlur = Math.max(12, Number(runtime.active.node_shadow_blur || 0) * 0.34);
+      ctx.shadowColor = colorToRgba("#B8DFFF", 0.08);
       ctx.stroke();
       ctx.restore();
     }
@@ -1879,23 +1993,23 @@ function drawNodeSurfaceChrome(ctx, node, size, litegraph, lowQuality, selected,
     ctx.clip();
 
     const gloss = ctx.createLinearGradient(area[0], area[1], area[0] + area[2] * 0.75, area[1] + area[3]);
-    gloss.addColorStop(0, colorToRgba("#FFFFFF", 0.2));
-    gloss.addColorStop(0.28, colorToRgba("#F5FBFF", 0.1));
-    gloss.addColorStop(0.55, colorToRgba("#DDF4FF", 0.04));
+    gloss.addColorStop(0, colorToRgba("#FFFFFF", 0.15));
+    gloss.addColorStop(0.28, colorToRgba("#F5FBFF", 0.07));
+    gloss.addColorStop(0.55, colorToRgba("#DDF4FF", 0.025));
     gloss.addColorStop(1, colorToRgba("#FFFFFF", 0));
     ctx.fillStyle = gloss;
     ctx.fillRect(area[0], area[1], area[2], area[3]);
 
     const rim = ctx.createLinearGradient(area[0], area[1], area[0], area[1] + area[3]);
-    rim.addColorStop(0, colorToRgba("#FFFFFF", 0.32));
-    rim.addColorStop(0.24, colorToRgba("#FFFFFF", 0.12));
+    rim.addColorStop(0, colorToRgba("#FFFFFF", 0.2));
+    rim.addColorStop(0.24, colorToRgba("#FFFFFF", 0.08));
     rim.addColorStop(1, colorToRgba("#FFFFFF", 0));
     ctx.fillStyle = rim;
     ctx.fillRect(area[0], area[1], area[2], Math.max(22, area[3] * 0.42));
 
     const lowerHaze = ctx.createLinearGradient(0, area[1] + area[3] * 0.5, 0, area[1] + area[3]);
     lowerHaze.addColorStop(0, colorToRgba("#A7E7FF", 0));
-    lowerHaze.addColorStop(1, colorToRgba("#A7E7FF", 0.045));
+    lowerHaze.addColorStop(1, colorToRgba("#A7E7FF", 0.028));
     ctx.fillStyle = lowerHaze;
     ctx.fillRect(area[0], area[1], area[2], area[3]);
     ctx.restore();
@@ -1904,10 +2018,10 @@ function drawNodeSurfaceChrome(ctx, node, size, litegraph, lowQuality, selected,
       ctx.save();
       ctx.beginPath();
       buildNodeOutlinePath(ctx, node, size, litegraph, lowQuality, { inset: 0.5 });
-      ctx.lineWidth = Math.max(3, Number(runtime.active.node_outline_width || 0) * 2.7);
-      ctx.strokeStyle = colorToRgba("#F2FBFF", 0.42);
-      ctx.shadowBlur = Math.max(14, Number(runtime.active.node_shadow_blur || 0) * 0.5);
-      ctx.shadowColor = colorToRgba("#FFFFFF", 0.14);
+      ctx.lineWidth = Math.max(3.4, Number(runtime.active.node_outline_width || 0) * 2.9 + 1.4);
+      ctx.strokeStyle = colorToRgba("#F2FBFF", 0.24);
+      ctx.shadowBlur = Math.max(16, Number(runtime.active.node_shadow_blur || 0) * 0.45);
+      ctx.shadowColor = colorToRgba("#FFFFFF", 0.08);
       ctx.stroke();
       ctx.restore();
     }
@@ -2004,8 +2118,8 @@ function drawNodeSurfaceChrome(ctx, node, size, litegraph, lowQuality, selected,
     const frameInset = 4 + shapeIntensity * 1.8;
     ctx.beginPath();
     buildNodeOutlinePath(ctx, node, size, litegraph, lowQuality, { inset: frameInset });
-    ctx.lineWidth = Math.max(1.2, 0.9 + shapeIntensity * 0.5);
-    ctx.strokeStyle = colorToRgba(litegraph?.NODE_BOX_OUTLINE_COLOR || fgcolor || "#FFFFFF", 0.12 + shapeIntensity * 0.1);
+    ctx.lineWidth = Math.max(1.35, 1 + shapeIntensity * 0.52);
+    ctx.strokeStyle = colorToRgba(litegraph?.NODE_BOX_OUTLINE_COLOR || fgcolor || "#FFFFFF", 0.1 + shapeIntensity * 0.08);
     ctx.stroke();
 
     const deckY = area[1] + Math.max(18, Number(runtime.active.node_title_height || 30) * 0.9);
@@ -2014,6 +2128,34 @@ function drawNodeSurfaceChrome(ctx, node, size, litegraph, lowQuality, selected,
     ctx.lineTo(area[0] + area[2] - 12, deckY);
     ctx.lineWidth = Math.max(1, 0.8 + shapeIntensity * 0.35);
     ctx.strokeStyle = colorToRgba(litegraph?.NODE_DEFAULT_BOXCOLOR || fgcolor || "#FFFFFF", 0.16 + shapeIntensity * 0.08);
+    ctx.stroke();
+
+    const railInset = 11 + shapeIntensity * 2;
+    ctx.beginPath();
+    ctx.moveTo(area[0] + railInset, area[1] + 14);
+    ctx.lineTo(area[0] + railInset, area[1] + area[3] - 14);
+    ctx.moveTo(area[0] + area[2] - railInset, area[1] + 14);
+    ctx.lineTo(area[0] + area[2] - railInset, area[1] + area[3] - 14);
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = colorToRgba(litegraph?.WIDGET_OUTLINE_COLOR || fgcolor || "#FFFFFF", 0.05 + shapeIntensity * 0.04);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (style === "minimal-card") {
+    ctx.save();
+    ctx.beginPath();
+    buildNodeOutlinePath(ctx, node, size, litegraph, lowQuality, { inset: 2 });
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = colorToRgba(litegraph?.NODE_BOX_OUTLINE_COLOR || fgcolor || "#FFFFFF", 0.075);
+    ctx.stroke();
+
+    const deckY = area[1] + Math.max(14, Number(runtime.active.node_title_height || 30) * 0.78);
+    ctx.beginPath();
+    ctx.moveTo(area[0] + 10, deckY);
+    ctx.lineTo(area[0] + area[2] - 10, deckY);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = colorToRgba(litegraph?.WIDGET_OUTLINE_COLOR || fgcolor || "#FFFFFF", 0.08);
     ctx.stroke();
     ctx.restore();
   }
